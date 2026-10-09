@@ -4,9 +4,13 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests",
     ":dependencyDashboard",
-    ":semanticCommits"
+    ":semanticCommits",
+    "schedule:weekly",
+    "group:allNonMajor"
   ],
   "labels": ["dependencies"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
   "customManagers": [
     {
       "customType": "regex",
@@ -43,6 +47,6 @@
       "minimumReleaseAge": null
     }
   ],
-  "lockFileMaintenance": { "enabled": true },
-  "vulnerabilityAlerts": { "labels": ["security"] }
+  "lockFileMaintenance": { "enabled": true, "schedule": ["* 0-6 * * 1"] },
+  "vulnerabilityAlerts": { "labels": ["security"], "schedule": [] }
 }

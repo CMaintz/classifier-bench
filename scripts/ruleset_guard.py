@@ -3,7 +3,7 @@
 ruleset-change label), 0 = safe.
 
 Per-entry, not aggregate: any entry ADDED or INCREASED is a loosening; removals
-are fine. This is what defeats the offset attack - fixing one violation while
+are fine. This is what defeats the offset attack — fixing one violation while
 suppressing another nets zero on a summed count, but shows up here as an added
 entry.
 
@@ -14,11 +14,11 @@ checkout) can call it.
 Kinds:
   eslint  eslint-suppressions.json      (per file+rule count)
   snooze  habit-hooks snooze.json, and dependency-cruiser known-violations JSON
-          (position-independent multiset of scalar leaves - an added violation
+          (position-independent multiset of scalar leaves — an added violation
           increments its scalars, so it's caught; reorder/remove are safe)
   lines   ArchUnit FreezingArchRule store files (one frozen violation per line;
           run once per changed store file under archunit_store/)
-  coverage  prompt-eval manifest.json - INVERSE: a REMOVED fixture is less coverage,
+  coverage  prompt-eval manifest.json — INVERSE: a REMOVED fixture is less coverage,
             so removal (not addition) is the loosening
 
 Usage: ruleset_guard.py <eslint|snooze|lines|coverage> <base-ref> <head-ref> <path>

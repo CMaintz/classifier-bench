@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   gate:
-    uses: CMaintz/foundry/.github/workflows/gate.yml@v2   # the public facade - pin this, not the per-stack files
+    uses: CMaintz/foundry/.github/workflows/gate.yml@ad286d83af4094a74c3a0ff7b0390a14d88ba801   # v2   # the public facade - pin this, not the per-stack files
     with:
       stack: "python"
       working_directory: "."

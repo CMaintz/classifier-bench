@@ -1,0 +1,6 @@
+name: ratchet
+on: { pull_request: {} }
+jobs:
+  ratchet:
+    uses: CMaintz/foundry/.github/workflows/ratchet-report.yml@v2
+    permissions: { contents: read, pull-requests: write }

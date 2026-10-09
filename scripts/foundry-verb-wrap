@@ -1,0 +1,56 @@
+#!/bin/sh
+# foundry-verb-wrap - time a verb, record the outcome, propagate its exit code.
+#
+#   foundry-verb-wrap <verb> -- <command> [args...]
+#
+# Runs <command>, then appends ONE JSON line to the telemetry log describing the
+# run (verb, exit, duration, scope, placement). The command's exit code is always
+# propagated unchanged - telemetry is best-effort and MUST NOT change a verb's
+# outcome. This is the single instrumentation point every placement routes through
+# (see designs/loop-telemetry.md); wire it into a mise template's verbs.
+#
+# Env:
+#   FOUNDRY_TELEMETRY   log path (default: .foundry/telemetry.jsonl, gitignored)
+#   FOUNDRY_PLACEMENT   ci|ship|hook|manual (default: "ci" if $CI set, else "manual")
+#   FOUNDRY_SINCE       if set (even empty), scope is recorded as "changed", else "whole"
+set -u
+
+verb="${1:-unknown}"
+[ $# -gt 0 ] && shift
+[ "${1:-}" = "--" ] && shift
+
+telemetry="${FOUNDRY_TELEMETRY:-.foundry/telemetry.jsonl}"
+
+placement="${FOUNDRY_PLACEMENT:-}"
+if [ -z "$placement" ]; then
+  if [ -n "${CI:-}" ]; then placement="ci"; else placement="manual"; fi
+fi
+
+# FOUNDRY_SINCE set (even to empty) => the verb ran changed-scoped; unset => whole-tree.
+if [ -n "${FOUNDRY_SINCE+x}" ]; then scope="changed"; else scope="whole"; fi
+
+# Epoch milliseconds; fall back to second-resolution where date lacks %N (e.g. BSD).
+now_ms() {
+  d=$(date +%s%3N 2>/dev/null)
+  case "$d" in
+    ''|*[!0-9]*) echo "$(date +%s)000" ;;
+    *) echo "$d" ;;
+  esac
+}
+
+start=$(now_ms)
+"$@"
+rc=$?
+dur=$(( $(now_ms) - start ))
+[ "$dur" -lt 0 ] && dur=0
+ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "")
+
+# Best-effort append. Any failure here is swallowed so the verb's exit code stands.
+(
+  dir=$(dirname "$telemetry")
+  [ -d "$dir" ] || mkdir -p "$dir" 2>/dev/null || exit 0
+  printf '{"ts":"%s","ms":%s,"verb":"%s","scope":"%s","placement":"%s","exit":%d,"duration_ms":%d}\n' \
+    "$ts" "$start" "$verb" "$scope" "$placement" "$rc" "$dur" >> "$telemetry" 2>/dev/null || true
+) 2>/dev/null || true
+
+exit "$rc"

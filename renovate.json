@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "labels": ["dependencies"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "habit-hooks pinned in mise.toml [env] (HABIT_HOOKS_VERSION); core and language plugin install in lockstep at this version. Matches the scaffolded repo's mise.toml and foundry's own mise/<stack>.toml templates.",
+      "fileMatch": ["(^|/)mise\\.toml$", "^mise/[^/]+\\.toml$"],
+      "matchStrings": ["HABIT_HOOKS_VERSION\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "pypi",
+      "depNameTemplate": "habit-hooks"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Let a release settle for 7 days (the floor semgrep's renovate-missing-minimum-release-age rule enforces) before proposing it, to dodge just-published broken or compromised versions (supply-chain hygiene). Security fixes are exempted in the vulnerability rule below so they still land fast.",
+      "matchPackageNames": ["*"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "The CONTRACT says pin everything; Renovate is the update path. Keep Actions pinned to a digest and bump the digest + the trailing # vN comment together.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "pinDigests": true
+    },
+    {
+      "description": "Toolchain versions declared in mise.toml [tools].",
+      "matchManagers": ["mise"],
+      "groupName": "mise toolchain"
+    },
+    {
+      "description": "Security fixes land fast and on their own, labelled; exempt from minimumReleaseAge so a patched release is never held back. null (Renovate's own vulnerabilityAlerts default) rather than \"0 seconds\", which the semgrep rule rejects as not \"N days\", or false, which renovate-config-validator rejects.",
+      "matchPackageNames": ["*"],
+      "isVulnerabilityAlert": true,
+      "labels": ["security"],
+      "prPriority": 10,
+      "minimumReleaseAge": null
+    }
+  ],
+  "lockFileMaintenance": { "enabled": true },
+  "vulnerabilityAlerts": { "labels": ["security"] }
+}

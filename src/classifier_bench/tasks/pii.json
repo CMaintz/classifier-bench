@@ -1,0 +1,44 @@
+{
+  "task": "pii",
+  "description": "Privacy gate before logging or forwarding text: does it contain personal data that identifies a specific private individual.",
+  "fallback": {
+    "contains_pii": true
+  },
+  "questions": {
+    "contains_pii": {
+      "type": "noul",
+      "instructions": "Does the text contain personal data about a specific private individual? Treat people as real unless the text frames them as an example or placeholder. Counts: a phone number, personal email, street address, national ID, card or account number, or health data tied to a person, with or without a name. Does not count: company or role mailboxes, public figures in their public role, opaque internal user ids, and partial card numbers (last four digits).",
+      "criteria": {
+        "true": "Contains personal data of a real private individual",
+        "false": "No personal data of a private individual"
+      }
+    }
+  },
+  "cases": [
+    {"id": "PI-01", "state": "Call me back on +45 22 33 44 55, ask for Mette.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Phone + first name."},
+    {"id": "PI-02", "state": "Our office is closed on public holidays.", "labels": {"contains_pii": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "No personal data."},
+    {"id": "PI-03", "state": "Ship it to Jonas Berg, Elmegade 14, 2200 Copenhagen N.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Name + address."},
+    {"id": "PI-04", "state": "Use the format name@example.com for the email field.", "labels": {"contains_pii": false}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Placeholder email."},
+    {"id": "PI-05", "state": "My CPR number is 120389-1234, please update my file.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Danish national ID."},
+    {"id": "PI-06", "state": "The CEO of Microsoft announced the results on Tuesday.", "labels": {"contains_pii": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Public figure in public role."},
+    {"id": "PI-07", "state": "Patient Karen Holm, 54, was diagnosed with type 2 diabetes last week.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Health data tied to a person."},
+    {"id": "PI-08", "state": "Error 502 from upstream at 14:03 UTC, request id 9f2c-77a1.", "labels": {"contains_pii": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Technical identifiers."},
+    {"id": "PI-09", "state": "Card ending 4417 was declined.", "labels": {"contains_pii": false}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Last four digits alone, no individual identified."},
+    {"id": "PI-10", "state": "Payment from DK50 0040 0440 1162 43 to Sofie Lund failed.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Account number + name."},
+    {"id": "PI-11", "state": "Contact sales at sales@acme-corp.com for pricing.", "labels": {"contains_pii": false}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Company role mailbox."},
+    {"id": "PI-12", "state": "hey it's tom.henriksen87@gmail.com, can you reset my password?", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Personal email."},
+    {"id": "PI-13", "state": "Ring til mig på 40 12 34 56 efter kl. 16, mvh Peter.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish phone + name."},
+    {"id": "PI-14", "state": "In our example, John Doe lives at 123 Main Street, Springfield.", "labels": {"contains_pii": false}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Fictional placeholder."},
+    {"id": "PI-15", "state": {"log": [{"level": "info", "msg": "user signed in", "user_id": "u_18273"}, {"level": "warn", "msg": "address update", "new_address": "Nørrebrogade 120, 2200 København N", "user_name": "Ali Hassan"}]}, "labels": {"contains_pii": true}, "meta": {"subset": "tool_context", "lang": "en"}, "rationale": "Structured log with name + address."},
+    {"id": "PI-16", "state": {"log": [{"level": "info", "msg": "cache warmed", "keys": 1832}, {"level": "error", "msg": "timeout calling payments", "user_id": "u_99812"}]}, "labels": {"contains_pii": false}, "meta": {"subset": "tool_context", "lang": "en"}, "rationale": "Opaque internal id only."},
+    {"id": "PI-X01", "state": "If the delivery is late tonight, just text me on 31 45 67 89.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "A personal phone number counts even without a name."},
+    {"id": "PI-X02", "state": "Please deliver to my flat at Søndre Fasanvej 47, 2. th., 2000 Frederiksberg, the buzzer doesn't work.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "A private street address counts even without a name."},
+    {"id": "PI-X03", "state": "My son was diagnosed with epilepsy in March and has to take his medication at noon every school day.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Health data tied to a specific person counts with or without a name."},
+    {"id": "PI-X04", "state": "In 2025, 14% of the clinic's patients were diagnosed with type 2 diabetes.", "labels": {"contains_pii": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Aggregate health statistic, not tied to any individual."},
+    {"id": "PI-X05", "state": "Hej, her er min søns personnummer: 140612-3317. Han skal tilmeldes svømmeholdet.", "labels": {"contains_pii": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "A national ID number (Danish CPR) of a specific child."},
+    {"id": "PI-X06", "state": "Skriv til kundeservice@nordbank.dk, hvis du har spørgsmål til dit lån.", "labels": {"contains_pii": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "A company role mailbox is not personal data."},
+    {"id": "PI-X07", "state": "Ticket 58213, internal notes. 09:12 Customer called about a delayed delivery of the replacement dishwasher, order reference SO-77120. Carrier tracking shows the parcel stuck at the Taastrup hub since Monday. 09:20 Called the carrier, they say the label is unreadable and they need the delivery details confirmed again. 09:41 Customer confirmed the delivery details over the phone: Birkevej 9, 4000 Roskilde, ring the bell at the side door, and said the carrier can reach her directly on 26 71 48 03 between 8 and 15 on weekdays. 10:05 Sent the corrected details to the carrier through the partner portal and asked for redelivery Thursday. 10:30 Carrier confirmed Thursday, time window 8-12. 10:32 Sent the customer the standard redelivery confirmation template. Next step: check Thursday afternoon that delivery happened and close the ticket. If it fails again, escalate to the logistics team lead and offer the customer a refund of the delivery fee as a goodwill gesture.", "labels": {"contains_pii": true}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Contains a private street address and a personal phone number of the customer."},
+    {"id": "PI-X08", "state": "Incident summary, payments service, 6 October. Between 14:02 and 14:47 UTC about 3% of card authorizations failed with a timeout from the acquirer. The on-call engineer was paged at 14:05 through the payments-oncall rotation and opened a bridge at 14:09. Initial suspicion was our own connection pool, but pool metrics were normal. At 14:31 the acquirer's status page confirmed degraded performance in their EU region. We enabled failover to the secondary acquirer at 14:40 and error rates returned to baseline by 14:47. Affected requests were retried automatically; a sample of affected sessions includes user ids u_44120, u_90813 and u_12077, and the failed authorizations were for cards ending 1881, 0423 and 7740. No customer was charged twice. Follow-ups: lower the failover threshold from 10% to 3% errors, add an alert on acquirer latency, and ask the acquirer for a written root cause within two weeks, and review the runbook at the next team meeting. Questions about this report can go to payments-team@acme-corp.com.", "labels": {"contains_pii": false}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Only opaque user ids, last-four card digits and a team mailbox."},
+    {"id": "PI-X09", "state": "For testing, enter any 16-digit card number such as 4242 4242 4242 4242 with any future expiry date.", "labels": {"contains_pii": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "The card number is framed as a test placeholder, not a real person's card."}
+  ]
+}

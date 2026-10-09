@@ -1,0 +1,23 @@
+# Copy to <repo>/.habit-hooks/config.toml
+# There's no habit-hooks Python sensor, so structural smells come from ruff in
+# `mise run lint` (complexity, long functions, etc. - the gate). habit-hooks contributes
+# only the language-independent `generic` plugin: file-length (below) and, opt-in, jscpd.
+plugins = ["generic"]
+
+# Tests are not smell-scanned (language-agnostic principle - see README).
+files = ["**/*.py", "!**/tests/**", "!**/test_*.py", "!**/*_test.py"]
+
+# File-length: flag files over 300 lines (oversized-file). 300 rather than the
+# sensor default of 200 - verbose-but-cohesive files legitimately pass 200, and this is
+# a ratcheted coaching signal, not a hard wall. Config/data/prose are already excluded by
+# the `files` globs; keep big prompts in their own resource file.
+[sensors.line-count]
+args = ["--max", "300"]
+
+# jscpd (the generic plugin's duplication detector) is a Node CLI. Disabled by default so
+# the habits job stays Node-free (it runs only the pure-Python line-count). To turn on
+# Python duplication detection: install Node + `npm i -g jscpd` in the smells job, copy
+# ../jscpd.json to <repo>/.jscpd.json (jscpd ignores the `files` list above), delete this
+# block, then re-seed the snooze baseline.
+[sensors.jscpd]
+disabled = true

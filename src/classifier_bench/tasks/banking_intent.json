@@ -1,0 +1,51 @@
+{
+  "task": "banking_intent",
+  "description": "Multi-class intent detection for a retail-bank chat assistant.",
+  "fallback": {
+    "intent": "other"
+  },
+  "questions": {
+    "intent": {
+      "type": "choice",
+      "instructions": "What does the customer want the bank to do?",
+      "criteria": {
+        "card_lost": "Report a lost or stolen card, or block/freeze a card.",
+        "transfer_issue": "A transfer or payment that failed, is pending, or went to the wrong place.",
+        "balance": "Check balance, available funds, or recent transactions.",
+        "loan": "Loans, mortgages, credit limits, interest rates on borrowing.",
+        "fraud": "Transactions, withdrawals or contact the customer did not authorize or that look like a scam. If unauthorized transactions are reported, choose this even when a card was also lost.",
+        "close_account": "A request to close, cancel or leave the bank (not just a question about whether they could).",
+        "other": "None of the above."
+      }
+    }
+  },
+  "cases": [
+    {"id": "BI-01", "state": "I left my debit card in a taxi, please block it.", "labels": {"intent": "card_lost"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Lost card."},
+    {"id": "BI-02", "state": "how much money do i have", "labels": {"intent": "balance"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Balance."},
+    {"id": "BI-03", "state": "My transfer to my sister from Monday still says pending.", "labels": {"intent": "transfer_issue"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Pending transfer."},
+    {"id": "BI-04", "state": "What would the monthly payment be on a 200k mortgage over 25 years?", "labels": {"intent": "loan"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Mortgage."},
+    {"id": "BI-05", "state": "There's a 450 euro payment to 'TECHSTORE-LT' I never made.", "labels": {"intent": "fraud"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Unauthorized charge."},
+    {"id": "BI-06", "state": "I want to close my savings account and move everything elsewhere.", "labels": {"intent": "close_account"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Close account."},
+    {"id": "BI-07", "state": "What are your opening hours on Saturday?", "labels": {"intent": "other"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Branch hours."},
+    {"id": "BI-08", "state": "Someone called pretending to be from your bank and asked for my code. I gave it to them. What now?", "labels": {"intent": "fraud"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Scam victim."},
+    {"id": "BI-09", "state": "I sent rent to the wrong IBAN, one digit off. Can you get it back?", "labels": {"intent": "transfer_issue"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Misdirected payment."},
+    {"id": "BI-10", "state": "Can I raise the limit on my credit card to 5000?", "labels": {"intent": "loan"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Credit limit."},
+    {"id": "BI-11", "state": "My wallet was stolen with my card in it, and now I see two cash withdrawals I didn't make.", "labels": {"intent": "fraud"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Stolen card plus unauthorized withdrawals; fraud dominates."},
+    {"id": "BI-12", "state": "Did my salary come in yet?", "labels": {"intent": "balance"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Recent transactions check."},
+    {"id": "BI-13", "state": "Your fees are a joke. Cancel everything, I'm going to another bank.", "labels": {"intent": "close_account"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Leaving."},
+    {"id": "BI-14", "state": "Can I freeze my card for a few days? I can't find it but it's probably at home.", "labels": {"intent": "card_lost"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Temporary freeze of possibly lost card."},
+    {"id": "BI-15", "state": {"conversation": [{"from": "customer", "text": "I want to check my account."}, {"from": "bot", "text": "Sure, what would you like to know?"}], "latest": "why was my payment to the electricity company returned?"}, "labels": {"intent": "transfer_issue"}, "meta": {"subset": "followup", "lang": "en"}, "rationale": "Returned payment after vague opener."},
+    {"id": "BI-16", "state": "How do I change the address on my account?", "labels": {"intent": "other"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Profile change, not listed."},
+    {"id": "BI-17", "state": "Is the interest rate on car loans fixed or variable right now, and could I refinance my current one with you?", "labels": {"intent": "loan"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Car loan refinance."},
+    {"id": "BI-18", "state": "I'm moving to Spain next month and won't need a Danish bank anymore. Please shut everything down before I leave.", "labels": {"intent": "close_account"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Explicit request to end the relationship."},
+    {"id": "BI-X01", "state": "Jeg kan ikke finde mit Visa-kort. Jeg tror, nogen tog det fra min taske i bussen i morges. Der er ikke trukket noget på det endnu.", "labels": {"intent": "card_lost"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Reports a stolen card with no unauthorized transactions: card_lost."},
+    {"id": "BI-X02", "state": "Two weeks ago I paid 2,300 kr by card to an online furniture shop. Nothing has arrived, the website has disappeared and the phone number is dead. I think the shop was fake. Can you get my money back?", "labels": {"intent": "fraud"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "A payment to a shop that looks like a scam: fraud."},
+    {"id": "BI-X03", "state": "Hvor mye har jeg igjen på brukskontoen nå som husleia gikk ut i går?", "labels": {"intent": "balance"}, "meta": {"subset": "short", "lang": "no"}, "rationale": "Asks for available funds: balance."},
+    {"id": "BI-X04", "state": "We've found a flat for 3.1 million and have 15% saved up. How much would you be willing to lend us?", "labels": {"intent": "loan"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Borrowing to buy a home: loan."},
+    {"id": "BI-X05", "state": "Jeg overførte 5.000 kr. til min udlejer i fredags, men han siger, at pengene ikke er kommet, og de er heller ikke trukket fra min konto.", "labels": {"intent": "transfer_issue"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "A transfer that has not gone through: transfer_issue."},
+    {"id": "BI-X06", "state": "I've moved everything to Nordea now. Please wind down all my accounts with you and send whatever is left over there.", "labels": {"intent": "close_account"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Explicit request to end all accounts and leave: close_account."},
+    {"id": "BI-X07", "state": "Hello, I need help quickly and I am not sure who to talk to. Yesterday evening I got a text message that looked exactly like the ones you usually send, saying a new device had been added to my online banking and that I should confirm it was me. I was tired and tapped the link. It opened a page with your logo, and I typed in my login and then the code from my app when it asked for it. Nothing seemed to happen, so I went to bed. This morning I opened the app and there are three payments I have never seen before: 4,999 kr, 4,999 kr and 2,450 kr, all to a company called NORDIC GIFTS LTD, all made between 23:10 and 23:40 last night. I have never bought anything from them and I was asleep at that time. My card is still in my wallet and my phone has not left the flat. Please stop whatever else they might be trying to do and tell me how I get the money back. I can come to the branch on Vesterbrogade today if you need to see my ID.", "labels": {"intent": "fraud"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Three payments the customer did not make after a fake text: fraud."},
+    {"id": "BI-X08", "state": "Hi, I got married in August and changed my surname from Nielsen to Kristiansen, and at the same time we moved from our flat in Valby to a house in Roskilde. I have already updated everything with the national registry, and my new passport arrived last week. Most of my letters from you still come with the old name and the old address, and the last statement was sent to the flat, where the new tenants were kind enough to forward it. Could you update my name and postal address on all my accounts and on the debit card the next time it is reissued? I am happy to send a copy of the marriage certificate or the new passport if you need it, just tell me where to upload it. I would also like my husband's mobile number removed as a secondary contact, since he has his own accounts with you now and we would prefer to keep our contact details separate. Thanks in advance, and sorry for the long message.", "labels": {"intent": "other"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Name, address and contact changes match no listed intent: other."},
+    {"id": "BI-X09", "state": "Kann ich meinen Dispokredit von 1.000 auf 3.000 Euro erhöhen?", "labels": {"intent": "loan"}, "meta": {"subset": "short", "lang": "de"}, "rationale": "Raising an overdraft credit limit: loan."}
+  ]
+}

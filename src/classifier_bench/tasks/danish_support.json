@@ -1,0 +1,54 @@
+{
+  "task": "danish_support",
+  "description": "The support_ticket team decision on Danish tickets, with English instructions: measures the non-English gap the Jev docs warn about.",
+  "fallback": {
+    "team": "technical",
+    "urgent": true
+  },
+  "questions": {
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this support ticket? Route to the team that can fix the root cause, even when the symptom shows up elsewhere (a declined payment that suspends an account goes to billing).",
+      "criteria": {
+        "billing": "Charges, refunds, invoices, payment methods, price changes, and disputes by existing customers about what they pay for.",
+        "technical": "Bugs, errors, outages, integrations, data or features not working as designed.",
+        "account": "One user's login, password, 2FA, SSO setup, profile, account ownership, takeover or deletion.",
+        "sales": "Pre-purchase questions, upgrades, quotes, demos, plan comparisons, new seats, compliance documents for a purchase."
+      }
+    },
+    "urgent": {
+      "type": "noul",
+      "instructions": "Does this ticket need a response within the hour? Answer yes only if the customer (or their team) cannot do their core work right now, is losing money right now, reports a security incident (account takeover, unauthorized access), or has a hard deadline within about an hour. A deadline later than that, a recurring annoyance, or a workaround that still lets them work does not count.",
+      "criteria": {
+        "true": "Blocked now, losing money now, security incident, or a deadline within the hour",
+        "false": "Can wait for the normal queue"
+      }
+    }
+  },
+  "cases": [
+    {"id": "DS-01", "state": "I har trukket pengene to gange for samme faktura. Jeg vil gerne have det ene beløb tilbage.", "labels": {"team": "billing", "urgent": false}, "meta": {"subset": "short", "lang": "da", "pair_id": "ST-01"}, "rationale": "Double charge."},
+    {"id": "DS-02", "state": "Jeres system er nede, ingen af vores kasser kan tage imod betaling. Vi mister kunder lige nu!", "labels": {"team": "technical", "urgent": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Outage, losing money."},
+    {"id": "DS-03", "state": "Hej, hvad koster det at opgradere til Business-planen for 25 brugere?", "labels": {"team": "sales", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Quote."},
+    {"id": "DS-04", "state": "Jeg kan ikke logge ind, koden virker ikke og jeg får ingen mail om nulstilling.", "labels": {"team": "account", "urgent": true}, "meta": {"subset": "boundary", "lang": "da"}, "rationale": "Cannot log in at all: blocked from core work now."},
+    {"id": "DS-05", "state": "Nogen har ændret min e-mailadresse på kontoen uden min tilladelse. Spær kontoen med det samme.", "labels": {"team": "account", "urgent": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Account takeover."},
+    {"id": "DS-06", "state": "Kan I sende fakturaen for september igen? Jeg har slettet mailen.", "labels": {"team": "billing", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Invoice resend."},
+    {"id": "DS-07", "state": "Eksporten til Excel giver forkerte datoer, de står i amerikansk format.", "labels": {"team": "technical", "urgent": false}, "meta": {"subset": "short", "lang": "da", "pair_id": "ST-07"}, "rationale": "Minor bug."},
+    {"id": "DS-08", "state": "Vi overvejer at skifte fra en af jeres konkurrenter. Har I en dansk databehandleraftale og hosting i EU?", "labels": {"team": "sales", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Pre-purchase."},
+    {"id": "DS-09", "state": "Vores kort blev afvist og nu er hele arbejdsområdet låst. 20 medarbejdere kan ikke arbejde.", "labels": {"team": "billing", "urgent": true}, "meta": {"subset": "boundary", "lang": "da", "pair_id": "ST-11"}, "rationale": "Payment-caused lockout."},
+    {"id": "DS-10", "state": "Appen crasher hver gang jeg prøver at uploade et billede fra telefonen.", "labels": {"team": "technical", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Bug."},
+    {"id": "DS-11", "state": "Hvordan sletter jeg min konto og alle mine data?", "labels": {"team": "account", "urgent": false}, "meta": {"subset": "short", "lang": "da", "pair_id": "ST-09"}, "rationale": "Deletion."},
+    {"id": "DS-12", "state": "Jeg har mistet min telefon og kan ikke komme forbi totrinsbekræftelsen. Jeg skal præsentere for en kunde om en halv time.", "labels": {"team": "account", "urgent": true}, "meta": {"subset": "short", "lang": "da", "pair_id": "ST-04"}, "rationale": "2FA, blocked now."},
+    {"id": "DS-13", "state": "Prisen steg 30% uden varsel. Det er ikke i orden, jeg vil have den gamle pris tilbage.", "labels": {"team": "billing", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Pricing dispute."},
+    {"id": "DS-14", "state": "Integrationen til e-conomic har ikke synkroniseret siden i går. Bogføringen hober sig op, men vi kan stadig arbejde.", "labels": {"team": "technical", "urgent": false}, "meta": {"subset": "boundary", "lang": "da"}, "rationale": "Integration broken, backlog growing, but the customer says they can still work: not urgent."},
+    {"id": "DS-15", "state": "Kan vi få en demo af jeres nye rapportmodul næste uge?", "labels": {"team": "sales", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Demo request."},
+    {"id": "DS-16", "state": {"samtale": [{"fra": "kunde", "tekst": "Refusion for årsabonnementet, tak."}, {"fra": "support", "tekst": "Vi har sendt 2.100 kr. retur, det tager 5-10 dage."}], "seneste": "Der er gået tre uger og intet er kommet. Det er anden gang jeg skriver."}, "labels": {"team": "billing", "urgent": false}, "meta": {"subset": "followup", "lang": "da", "pair_id": "ST-14"}, "rationale": "Refund follow-up."},
+    {"id": "DS-X01", "state": "Hej. Jeg har fået en kvittering for en ændring af min adgangskode, som jeg ikke selv har lavet, og nu kan jeg ikke logge ind. Kan I hjælpe?", "labels": {"team": "account", "urgent": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "One user's account taken over: account; a security incident is urgent even when calmly worded."},
+    {"id": "DS-X02", "state": "Vores abonnement er sat på pause, fordi betalingen fejlede, og nu kan vores kunder ikke booke tider i salonen. Vi har allerede opdateret kortet.", "labels": {"team": "billing", "urgent": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Failed payment is the root cause: billing; customers cannot book now, so they are losing money: urgent."},
+    {"id": "DS-X03", "state": "Vi er en skole med 400 elever. Har I uddannelsesrabat, hvis vi køber licenser til alle?", "labels": {"team": "sales", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Pre-purchase pricing question: sales, no time pressure."},
+    {"id": "DS-X04", "state": "Når vi printer fakturaer fra jeres system, bliver logoet sort-hvidt. Vi kan sagtens leve med det et stykke tid, men vil gerne have det rettet.", "labels": {"team": "technical", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "A printing bug, not a charge or invoice content issue: technical; they can live with it: not urgent."},
+    {"id": "DS-X05", "state": "Jeg er blevet gift og vil gerne ændre mit efternavn på min profil.", "labels": {"team": "account", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Profile change for one user: account, not urgent."},
+    {"id": "DS-X06", "state": "Vores lønkørsel skal være sendt inden kl. 12, og klokken er nu 11.20. Knappen 'Godkend løn' giver bare fejlkode 500.", "labels": {"team": "technical", "urgent": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "An error blocking a task due in 40 minutes: technical and urgent."},
+    {"id": "DS-X07", "state": "Hej. Vi har haft abonnement hos jer i tre år og har altid betalt for 12 brugere på jeres Standard-plan. Ved fornyelsen den 1. oktober blev vi trukket 18.600 kr. i stedet for de 14.400 kr., vi plejer at betale. Da jeg kiggede på fakturaen, kunne jeg se, at vi nu er flyttet til Business-planen, som vi aldrig har bedt om. Vi har ikke fået nogen mail om en planændring, og ingen af os kan huske at have klikket på noget i den retning. Vi bruger heller ikke nogen af de ekstra funktioner, der følger med Business. Jeg vil derfor gerne bede om, at vi bliver sat tilbage på Standard-planen, og at I refunderer forskellen på 4.200 kr. til det kort, I trak beløbet fra. Der er ingen hast, vi kan sagtens arbejde videre som det er, men jeg vil gerne have det løst inden vores regnskab for kvartalet lukker i slutningen af måneden. Send gerne en kreditnota, når det er gjort. Venlig hilsen Birgitte, økonomiansvarlig", "labels": {"team": "billing", "urgent": false}, "meta": {"subset": "long", "lang": "da"}, "rationale": "Disputed plan change and refund: billing; the customer says there is no rush."},
+    {"id": "DS-X08", "state": "Siden opdateringen i nat viser kalenderen alle møder en time forskudt. Vi retter tiderne manuelt indtil videre.", "labels": {"team": "technical", "urgent": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "A display bug after an update: technical; a manual workaround lets them work: not urgent."}
+  ]
+}

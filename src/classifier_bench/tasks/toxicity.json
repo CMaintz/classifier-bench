@@ -1,0 +1,44 @@
+{
+  "task": "toxicity",
+  "description": "Content moderation: is a user comment abusive toward a person or group (not merely negative or profane).",
+  "fallback": {
+    "toxic": true
+  },
+  "questions": {
+    "toxic": {
+      "type": "noul",
+      "instructions": "Is this comment abusive: does it insult, demean, threaten or harass an identifiable person or group? Name-calling or slurs aimed at someone count even when framed through their work. Hyperbolic criticism of a performance, product or idea, and profanity not aimed at anyone, do not count.",
+      "criteria": {
+        "true": "Insults, threatens, demeans or harasses a person or group",
+        "false": "Not abusive, even if negative or crude"
+      }
+    }
+  },
+  "cases": [
+    {"id": "TX-01", "state": "You're a pathetic idiot and everyone here knows it.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Direct insult."},
+    {"id": "TX-02", "state": "This update is terrible, the new UI is a step backwards.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Product criticism."},
+    {"id": "TX-03", "state": "Damn, I spilled coffee all over my keyboard again.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Profanity not aimed at anyone."},
+    {"id": "TX-04", "state": "People like you shouldn't be allowed to vote.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Demeaning."},
+    {"id": "TX-05", "state": "I disagree with your analysis; the sample size is too small to support that claim.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Civil disagreement."},
+    {"id": "TX-06", "state": "Keep posting and I'll find out where you live.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Threat."},
+    {"id": "TX-07", "state": "lol this take is so bad it's almost impressive", "labels": {"toxic": false}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Mocks an idea, not the person."},
+    {"id": "TX-08", "state": "Typical woman driver, can't park to save her life.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Group stereotype."},
+    {"id": "TX-09", "state": "Great work on the release, team. Seriously proud of this one.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Praise."},
+    {"id": "TX-10", "state": "Only a complete moron would write code like this.", "labels": {"toxic": true}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Insult framed at code author."},
+    {"id": "TX-11", "state": "The referee was blind tonight, worst officiating I've seen all season.", "labels": {"toxic": false}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Hyperbolic criticism of performance."},
+    {"id": "TX-12", "state": "Go back to where you came from, nobody wants you here.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Xenophobic harassment."},
+    {"id": "TX-13", "state": "Du er sgu en klovn, hold nu din kæft.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish insult (you're a clown, shut your mouth)."},
+    {"id": "TX-14", "state": "Det var en ringe kamp, træneren burde fyres.", "labels": {"toxic": false}, "meta": {"subset": "boundary", "lang": "da"}, "rationale": "Danish: bad match, coach should be fired - criticism of performance."},
+    {"id": "TX-15", "state": {"thread": [{"user": "anna", "text": "I think we should postpone the launch."}, {"user": "mark", "text": "Agreed, QA isn't done."}], "comment": {"user": "joe", "text": "anna, nobody asked you, as usual you're just dead weight on this team."}}, "labels": {"toxic": true}, "meta": {"subset": "followup", "lang": "en"}, "rationale": "Targeted put-down in thread."},
+    {"id": "TX-16", "state": {"thread": [{"user": "lee", "text": "My PR got rejected again."}], "comment": {"user": "sam", "text": "ugh, that reviewer is brutal, but the feedback about tests was fair tbh"}}, "labels": {"toxic": false}, "meta": {"subset": "followup", "lang": "en"}, "rationale": "Mild venting, not abusive."},
+    {"id": "TX-X01", "state": "I'm such an idiot, I deleted the whole branch before pushing it.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "The insult is aimed at the writer themself, not at another person or group, so it is not abuse toward anyone."},
+    {"id": "TX-X02", "state": "Maybe let the adults handle the database migration, Sofie, and go back to making the slides.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Demeans an identifiable person as childish and incapable, without any insult word."},
+    {"id": "TX-X03", "state": "My manager called me useless in front of the whole team today and I don't know how to respond.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Reports an insult the writer received; the comment itself does not insult anyone."},
+    {"id": "TX-X04", "state": "Folk som dig burde slet ikke have lov til at undervise børn.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish: 'people like you shouldn't be allowed to teach children' demeans the addressee."},
+    {"id": "TX-X05", "state": "Pis, nu kørte toget lige for næsen af mig igen.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish profanity about a missed train, not aimed at anyone."},
+    {"id": "TX-X06", "state": "I've played this game since launch and I have to say patch 4.2 is a complete dumpster fire. The new matchmaking puts level 10 players against people with a thousand hours, the loading times on console have doubled, and the crafting rework turned a fun system into a grind that feels designed to sell boosters. Half the maps now have invisible walls in places where you could walk last week. What the hell happened to playtesting? The worst part is the patch notes didn't mention half of these changes, so we all found out the hard way during ranked. I'm not asking for miracles. Roll back the matchmaking, fix the loading, and give us the old crafting costs until you figure out something better. Until then I'm uninstalling, and judging by the reviews this week I'm not the only one. Such a shame, because the art and music in this update are honestly the best they've ever been.", "labels": {"toxic": false}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Harsh, profane criticism of a patch and its process, with no person or group insulted."},
+    {"id": "TX-X07", "state": "Thanks to everyone who came to the allotment association meeting on Thursday. For those who missed it: the water will be shut off for winter on 1 November, so please drain your hoses before then, and the shed key now lives in the lockbox by the gate, code from the board on request. We also agreed to buy a second wheelbarrow and to repaint the compost bins in spring, volunteers welcome. On the hedge dispute, the board voted to keep the current rules. And to Brian on plot 14, who stood up and shouted at the treasurer for ten minutes: you are a nasty, small little man and everybody on this allotment is sick of you. If you ever raise your voice at Karen again, you'll be the one needing a new set of teeth, and I'll be happy to oblige. See you all at the harvest dinner on the 18th, bring a dish to share.", "labels": {"toxic": true}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Mostly neutral notice that insults and threatens an identifiable person (Brian on plot 14)."},
+    {"id": "TX-X08", "state": "Never hire anyone over fifty as a developer, they can't learn anything new and just slow the team down.", "labels": {"toxic": true}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Demeaning stereotype about an age group."},
+    {"id": "TX-X09", "state": "Die neue Version ist ein Rückschritt, die Entwickler haben die Wünsche der Nutzer offenbar komplett ignoriert.", "labels": {"toxic": false}, "meta": {"subset": "short", "lang": "de"}, "rationale": "German criticism of a product and of decisions, without name-calling."}
+  ]
+}

@@ -1,0 +1,11 @@
+name: gate
+on: { pull_request: {}, push: { branches: [main] } }
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  gate:
+    uses: CMaintz/foundry/.github/workflows/gate.yml@v2   # the public facade - pin this, not the per-stack files
+    with:
+      stack: "python"
+      working_directory: "."

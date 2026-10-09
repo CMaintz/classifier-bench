@@ -1,0 +1,9 @@
+name: security
+on: { pull_request: {}, push: { branches: [main] } }
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  security:
+    uses: CMaintz/foundry/.github/workflows/security.yml@v2   # facade: secret scan + ruleset-guard + SAST
+    permissions: { contents: read, pull-requests: read }   # the secret scan lists the PR's commits

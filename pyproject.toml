@@ -1,0 +1,51 @@
+[project]
+name = "classifier-bench"
+version = "0.1.0"
+description = "Benchmark fast typed classifiers (TypeSafe Jev and others) head to head against LLMs: accuracy, calibration, latency tails and cost on a frozen, labeled corpus."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Christoffer Maintz" }]
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["benchmark", "classification", "llm", "calibration", "latency", "evaluation", "jev", "claude"]
+
+[project.urls]
+Homepage = "https://github.com/CMaintz/classifier-bench"
+Issues = "https://github.com/CMaintz/classifier-bench/issues"
+
+[project.scripts]
+classifier-bench = "classifier_bench.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/classifier_bench"]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C90", "PLR0915"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-statements = 18
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["classifier_bench"]
+
+[tool.coverage.report]
+omit = ["src/classifier_bench/transport.py"]

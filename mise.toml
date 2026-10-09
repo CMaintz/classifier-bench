@@ -1,0 +1,202 @@
+# Foundry verb interface - Python template. See CONTRACT.md.
+# Carries the two fixes from CMaintz/foundry#67 (pytest 9.0.3 pin, mypy scoping) ahead
+# of the next Foundry release; re-sync from mise/python.toml once that ships.
+# Six verbs on ruff (lint + format) + mypy + pytest + pip-audit. Proven on jev-rerank;
+# this is that gate made reusable. Adjust for poetry/uv/pdm as needed.
+#
+# Pinning: ruff is a standalone binary, so it is a clean [tools] entry. mypy, pytest
+# and pip-audit are NOT [tools] entries on purpose - pytest must import the project and
+# its dependencies, mypy needs the project's packages for stubs, and pip-audit must
+# audit THIS project's environment; an isolated tool install would check the wrong
+# place and pass green. So they are pinned here and installed into a project .venv by
+# the setup:pytools task - the same "pin via a setup task + postinstall" mechanism the
+# java template uses for PMD. mise-action runs `mise install` in CI, which fires the
+# postinstall hook, so local and CI resolve the SAME versions.
+#
+# Gitignore `.venv/` (the project venv, a build artifact); foundry-init seeds `.foundry/`.
+
+[tools]
+python = "3.12"
+ruff = "0.14.0" # lint + format; standalone binary, no project deps -> clean pin
+
+[env]
+# Pinned into the project .venv by setup:pytools (see the header note). Bump them
+# together, and with ruff above - like the java template's PMD_VERSION, these mise.toml
+# pins are not auto-tracked by Renovate (only workflow-input defaults are).
+MYPY_VERSION = "1.18.2"
+PYTEST_VERSION = "9.0.3" # 8.4.2 fails pip-audit: PYSEC-2026-1845, fixed in 9.0.3
+PYTEST_COV_VERSION = "7.0.0"
+PIP_AUDIT_VERSION = "2.9.0"
+# habit-hooks (the structural-smell detector) is a pinned, mise-managed pip tool,
+# provisioned into a per-plugin venv by setup:habit-hooks (postinstall) whose bin goes on
+# PATH below - so the SAME version runs in-loop, pre-push (`gate`) and in CI (mirrors how
+# dotnet.toml wires it). There's no habit-hooks Python sensor, so the plugin is the language-
+# independent `generic` (file-length + opt-in jscpd); complexity and long-function smells
+# come from ruff in `lint`. Core + plugin ship in lockstep, so both pin to this one version.
+# Renovate bumps it (presets/renovate.json); keep it == the reusable workflow's
+# `habit_hooks_version` default (1.5.0).
+HABIT_HOOKS_VERSION = "1.5.0"
+HABIT_HOOKS_PLUGIN = "habit-hooks-generic"
+# Coverage floor for `test`. Override per repo (a legacy repo can start lower and
+# ratchet up); CI inherits whatever you set here.
+FOUNDRY_COV_MIN = "90"
+# The project .venv first (so mypy/pytest/pip-audit resolve to the pinned ones), then the
+# habit-hooks venv (so `smells` finds the pinned habit-hooks), then the repo's scripts/ so
+# the gate can call `foundry-verb-wrap` by name. Both venv bin layouts are listed (bin on
+# Linux/macOS, Scripts on Windows); the absent one is ignored.
+_.path = [
+    "{{config_root}}/.venv/bin",
+    "{{config_root}}/.venv/Scripts",
+    "{{env.HOME}}/.local/opt/{{env.HABIT_HOOKS_PLUGIN}}-{{env.HABIT_HOOKS_VERSION}}/bin",
+    "{{env.HOME}}/.local/opt/{{env.HABIT_HOOKS_PLUGIN}}-{{env.HABIT_HOOKS_VERSION}}/Scripts",
+    "{{config_root}}/scripts",
+]
+# Loop telemetry: each gate verb appends one JSONL line here (see designs/loop-telemetry.md).
+# Read it with `foundry-loop-report`. foundry-init installs the wrapper.
+FOUNDRY_TELEMETRY = "{{config_root}}/.foundry/telemetry.jsonl"
+
+# -- Jev (advisory layer; opt-in, OFF unless set) --------------------------
+# Foundry's near-free System One layer (see docs/FEATURES.md, the "jev/" entry):
+# it only routes review and triages turns on the proposer side, never the gate.
+# All of it stays off unless a key is present, so this whole block is optional.
+#
+# The key is NEVER committed: export JEV_API_KEY in your shell, not here. The
+# lines below are the safe, non-secret knobs at their defaults; uncomment to
+# change one. mise [env] reaches only processes under `mise run`/`mise exec` or
+# a mise-activated shell, so a Claude Code hook sees these only when the editor
+# was launched from such a shell.
+#
+# JEV_PROVIDER = "typesafe"           # or "cloudflare" (then set CLOUDFLARE_ACCOUNT_ID)
+# JEV_MODEL = "jev-latest"            # pin to a version to freeze behavior
+# TYPESAFE_AI_BASE_URL = "https://api.typesafe.ai/v1"   # a self-host, proxy, or mock
+# JEV_REVIEW_MIN_FILES = "0"          # skip review routing on diffs at or under N files
+# JEV_TOOLCALL_TRIAGE = "0"           # 1 warns on risky tool calls (repos with that hook)
+# JEV_FEATURE_PRECHECK = "0"          # 1 pre-checks a feature ticket (repos with that hook)
+
+[hooks]
+# Two provisioning tasks on `mise install` (local and CI alike): the project .venv tools
+# and the pinned habit-hooks venv - the array form the java template uses for setup:pmd.
+postinstall = ["mise run setup:pytools", "mise run setup:habit-hooks"]
+
+[tasks."setup:pytools"]
+description = "Create the project .venv and install the pinned mypy/pytest/pip-audit (+ the project's own deps)"
+# dir = config_root so the postinstall hook writes the .venv next to THIS mise.toml even
+# when `mise install` runs from the repo root (a monorepo package, where config_root is
+# the package dir). Without it, bare relative paths would seed .venv in the wrong place.
+dir = "{{config_root}}"
+# Idempotent: a version-stamped marker skips reinstall when nothing changed, so
+# `mise install` (local and via mise-action) stays fast on a warm checkout.
+run = '''
+set -eu
+stamp=".venv/.foundry-pytools"
+want="$MYPY_VERSION $PYTEST_VERSION $PYTEST_COV_VERSION $PIP_AUDIT_VERSION"
+if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$want" ]; then exit 0; fi
+python -m venv .venv
+py=".venv/bin/python"; [ -x "$py" ] || py=".venv/Scripts/python.exe"  # Scripts on Windows
+"$py" -m pip install --disable-pip-version-check --quiet --upgrade pip
+"$py" -m pip install --disable-pip-version-check --quiet \
+  "mypy==$MYPY_VERSION" "pytest==$PYTEST_VERSION" "pytest-cov==$PYTEST_COV_VERSION" "pip-audit==$PIP_AUDIT_VERSION"
+# Make the project importable so pytest/mypy see its code and deps. Editable if it is a
+# package; its declared runtime deps otherwise. Harmless no-op when there is neither.
+if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
+  "$py" -m pip install --disable-pip-version-check --quiet -e . || true
+elif [ -f requirements.txt ]; then
+  "$py" -m pip install --disable-pip-version-check --quiet -r requirements.txt || true
+fi
+echo "$want" > "$stamp"
+'''
+
+# Provision the pinned habit-hooks (core + generic plugin, same version) into a per-plugin
+# venv. Auxiliary (tier c) - not a contract verb, run via postinstall on `mise install`.
+[tasks."setup:habit-hooks"]
+description = "Install the pinned habit-hooks + generic plugin into a venv (file-length/jscpd smells)"
+run = '''
+set -eu
+dst="$HOME/.local/opt/$HABIT_HOOKS_PLUGIN-$HABIT_HOOKS_VERSION"
+py=""
+for c in python3 python; do
+  if command -v "$c" >/dev/null 2>&1 && "$c" --version >/dev/null 2>&1; then py="$c"; break; fi
+done
+if [ -z "$py" ]; then echo "setup:habit-hooks: no working python3/python on PATH; skipping (install Python to run smells)"; exit 0; fi
+bin="$dst/bin"; [ -d "$bin" ] || bin="$dst/Scripts"
+if "$bin/habit-hooks" --version >/dev/null 2>&1; then exit 0; fi
+echo "Installing $HABIT_HOOKS_PLUGIN + habit-hooks $HABIT_HOOKS_VERSION -> $dst"
+rm -rf "$dst"
+"$py" -m venv "$dst"
+bin="$dst/bin"; [ -d "$bin" ] || bin="$dst/Scripts"
+"$bin/pip" install --disable-pip-version-check "habit-hooks==$HABIT_HOOKS_VERSION" "$HABIT_HOOKS_PLUGIN==$HABIT_HOOKS_VERSION"
+'''
+
+# Structural smells (file-length / jscpd via habit-hooks), folded into `lint` below (tier
+# b). Same check CI's habits job runs, so `gate` is the same oracle locally and in CI.
+# Degrades gracefully (skip) with no .habit-hooks config/snooze or an unresolvable base;
+# FAILS only when a config + baseline exist but habit-hooks isn't on PATH (run `mise install`).
+[tasks.smells]
+description = "Structural smells on changed files (habit-hooks --branch); folded into lint"
+depends = ["setup:habit-hooks"]
+run = '''
+set -eu
+dst="$HOME/.local/opt/$HABIT_HOOKS_PLUGIN-$HABIT_HOOKS_VERSION"
+hh="$dst/bin/habit-hooks"; [ -x "$hh" ] || hh="$dst/Scripts/habit-hooks.exe"
+if [ ! -f .habit-hooks/config.toml ]; then echo "smells: no .habit-hooks/config.toml; skipping"; exit 0; fi
+if [ ! -f .habit-hooks/snooze.json ]; then m="smells: no snooze baseline yet (run bootstrap); structural smells are NOT being checked"; echo "$m"; if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::warning::$m"; fi; exit 0; fi
+mb=$(git merge-base "${FOUNDRY_BASE_REF:-origin/main}" HEAD 2>/dev/null || true)
+if [ -z "$mb" ]; then echo "smells: cannot resolve base '${FOUNDRY_BASE_REF:-origin/main}'; skipping"; exit 0; fi
+[ -x "$hh" ] || { echo "smells: pinned habit-hooks not found at $dst (run 'mise install')" >&2; exit 1; }
+echo "smells: $("$hh" --version) --branch base=$mb"
+"$hh" --branch "$mb"
+'''
+
+[tasks.fix]
+description = "Auto-fix lint + format (ruff)"
+run = ["ruff check --fix .", "ruff format ."]
+
+[tasks.lint]
+description = "Lint + format check (ruff) + structural smells (habit-hooks)"
+# ruff subsumes flake8/isort/pyupgrade/etc.; enable the rule sets you want in ruff.toml
+# (incl. mccabe `C90` for complexity). ruff is the Python-specific smell detector
+# (complexity, long functions); habit-hooks via `mise run smells` adds the language-
+# independent file-length (+ opt-in jscpd) signal - the same smell scan CI runs - so `gate`
+# is the same oracle locally and in CI. ruff ignores .venv by default.
+run = ["ruff check .", "ruff format --check .", "mise run smells"]
+
+[tasks.typecheck]
+description = "Static types (mypy)"
+# Scope: a `files` list under [tool.mypy] (pyproject.toml) or [mypy] (mypy.ini /
+# .mypy.ini / setup.cfg) wins - e.g. files = ["src", "tests"] - so bare `mypy` runs. An
+# explicit `.` would override that list, so it is passed only when none is configured.
+# The fallback walk excludes the project .venv (mypy, unlike ruff/pytest, does not skip it)
+# and the vendored scripts/ruleset_guard.py, which is untyped and fails `strict = true`.
+run = '''
+set -eu
+has_files() { [ -f "$1" ] && awk -v sec="$2" '/^\[/ { s = ($0 == sec) } s && /^[[:space:]]*files[[:space:]]*=/ { f = 1 } END { exit !f }' "$1"; }
+if has_files pyproject.toml '[tool.mypy]' || has_files mypy.ini '[mypy]' || has_files .mypy.ini '[mypy]' || has_files setup.cfg '[mypy]'; then
+  mypy
+else
+  # `.` stands in for the path separator: mypy matches native paths (backslashes on Windows).
+  mypy --exclude '(^|.)(\.venv.|scripts.ruleset_guard\.py$)' .
+fi
+'''
+
+[tasks.test]
+description = "Tests with a coverage floor (default 90; override FOUNDRY_COV_MIN)"
+# pytest skips .venv by default (norecursedirs covers dot-dirs).
+run = "pytest --cov --cov-fail-under=${FOUNDRY_COV_MIN:-90}"
+
+[tasks.audit]
+description = "Dependency vulnerabilities (pip-audit over the project .venv)"
+# --skip-editable: do not audit the editable project itself (it has no release to match);
+# runtime + dev deps installed in the .venv are audited.
+run = "pip-audit --skip-editable"
+
+[tasks.gate]
+description = "The oracle. Sequential - mise `depends` runs in parallel with no ordering."
+# Each verb wrapped by `foundry-verb-wrap`: times it, appends a line to FOUNDRY_TELEMETRY,
+# propagates the exit code unchanged (a failing verb still stops the sequence). Wrapper on
+# PATH via scripts/ ([env]); foundry-init installs it. Not part of the six-verb contract.
+run = [
+    "foundry-verb-wrap lint      -- mise run lint",
+    "foundry-verb-wrap typecheck -- mise run typecheck",
+    "foundry-verb-wrap test      -- mise run test",
+    "foundry-verb-wrap audit     -- mise run audit",
+]

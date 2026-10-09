@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""foundry-loop-report - make the agent loop legible from verb telemetry.
+
+Reads the JSONL emitted by foundry-verb-wrap (see designs/loop-telemetry.md) and
+prints where the loop spends time, whether it is converging or thrashing, and how
+each verb has been faring. Deterministic and offline; no model, no network.
+
+Usage:
+    foundry-loop-report [PATH]
+
+PATH defaults to $FOUNDRY_TELEMETRY, then .foundry/telemetry.jsonl.
+
+Honest scope (v1): this summarises *verb* telemetry (timing, exit, scope,
+placement) and derives a thrash signal from pass->fail regressions. Smell-trend
+convergence needs smell counts, which the habit-hooks Stop hook will emit later
+(a follow-on); until then this reports "thrash" from verb regressions only.
+"""
+import json
+import os
+import sys
+from collections import defaultdict
+
+
+def load(path):
+    rows = []
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    # A torn last line (crash mid-write) shouldn't sink the report.
+                    continue
+    except FileNotFoundError:
+        return None
+    return rows
+
+
+def fmt_ms(ms):
+    return f"{ms / 1000:.1f}s" if ms >= 1000 else f"{ms}ms"
+
+
+def main():
+    path = (
+        sys.argv[1] if len(sys.argv) > 1
+        else os.environ.get("FOUNDRY_TELEMETRY", ".foundry/telemetry.jsonl")
+    )
+    rows = load(path)
+    if rows is None:
+        print(f"No telemetry at {path}. Run the gate once with foundry-verb-wrap wired in.")
+        return 0
+    if not rows:
+        print(f"{path} is empty - nothing to report yet.")
+        return 0
+
+    rows.sort(key=lambda r: r.get("ms", 0))
+
+    per = defaultdict(lambda: {"runs": 0, "fails": 0, "regress": 0, "total": 0, "last_ok": None})
+    placements, scopes = defaultdict(int), defaultdict(int)
+    for r in rows:
+        v = r.get("verb", "?")
+        st = per[v]
+        st["runs"] += 1
+        st["total"] += r.get("duration_ms", 0)
+        ok = r.get("exit", 0) == 0
+        if not ok:
+            st["fails"] += 1
+        # A pass followed later by a fail is a regression - the thrash signal.
+        if st["last_ok"] is True and not ok:
+            st["regress"] += 1
+        st["last_ok"] = ok
+        placements[r.get("placement", "?")] += 1
+        scopes[r.get("scope", "?")] += 1
+
+    total_ms = sum(s["total"] for s in per.values())
+    first, last = rows[0].get("ts", "?"), rows[-1].get("ts", "?")
+    lint_runs = per.get("lint", {}).get("runs", 0)
+
+    print(f"Foundry loop report - {path}")
+    print(f"Window: {first} -> {last}   ({len(rows)} verb runs"
+          + (f", ~{lint_runs} gate attempts" if lint_runs else "") + ")")
+    print()
+    print("Per verb (by total time):")
+    print(f"  {'verb':<12}{'runs':>5}{'fails':>6}{'regress':>8}{'total':>10}{'avg':>9}")
+    for v, s in sorted(per.items(), key=lambda kv: kv[1]["total"], reverse=True):
+        avg = s["total"] // s["runs"] if s["runs"] else 0
+        print(f"  {v:<12}{s['runs']:>5}{s['fails']:>6}{s['regress']:>8}"
+              f"{fmt_ms(s['total']):>10}{fmt_ms(avg):>9}")
+    print()
+
+    # Time sink.
+    if total_ms:
+        sink, ss = max(per.items(), key=lambda kv: kv[1]["total"])
+        pct = 100 * ss["total"] / total_ms
+        print(f"Time sink: {sink} ({fmt_ms(ss['total'])}, {pct:.0f}% of tracked verb time)")
+
+    # Thrash / convergence.
+    thrash = {v: s["regress"] for v, s in per.items() if s["regress"]}
+    if thrash:
+        detail = ", ".join(f"{v} x{n}" for v, n in sorted(thrash.items(), key=lambda kv: -kv[1]))
+        print(f"Thrash: regressed after passing - {detail}. "
+              f"Fixing one verb may be breaking another; stop and look before another round.")
+    else:
+        print("Thrash: none - no verb regressed after passing (loop looks convergent).")
+
+    # Latest snapshot.
+    latest = {}
+    for r in rows:
+        latest[r.get("verb", "?")] = r.get("exit", 0) == 0
+    red = [v for v, ok in latest.items() if not ok]
+    print("Latest: " + ("all tracked verbs green" if not red else "still red -> " + ", ".join(red)))
+
+    print(f"Placements: " + ", ".join(f"{k} {v}" for k, v in sorted(placements.items())))
+    print(f"Scopes: " + ", ".join(f"{k} {v}" for k, v in sorted(scopes.items())))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

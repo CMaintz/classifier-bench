@@ -1,0 +1,48 @@
+{
+  "task": "language_id",
+  "description": "Language identification, with the hard Scandinavian boundary (Danish vs Norwegian Bokmal vs Swedish).",
+  "fallback": {
+    "language": "other"
+  },
+  "questions": {
+    "language": {
+      "type": "choice",
+      "instructions": "Which language is this text written in?",
+      "criteria": {
+        "en": "English",
+        "da": "Danish",
+        "no": "Norwegian (Bokmal)",
+        "sv": "Swedish",
+        "de": "German",
+        "nl": "Dutch",
+        "other": "Any other language"
+      }
+    }
+  },
+  "cases": [
+    {"id": "LI-01", "state": "Where is the nearest train station?", "labels": {"language": "en"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "English."},
+    {"id": "LI-02", "state": "Hvor ligger den nærmeste togstation?", "labels": {"language": "da"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish: 'togstation' (Norwegian has 'togstasjon')."},
+    {"id": "LI-03", "state": "Hvor ligger nærmeste togstasjon?", "labels": {"language": "no"}, "meta": {"subset": "short", "lang": "no"}, "rationale": "Norwegian ('togstasjon')."},
+    {"id": "LI-04", "state": "Var ligger närmaste tågstation?", "labels": {"language": "sv"}, "meta": {"subset": "short", "lang": "sv"}, "rationale": "Swedish (ä, å)."},
+    {"id": "LI-05", "state": "Wo ist der nächste Bahnhof?", "labels": {"language": "de"}, "meta": {"subset": "short", "lang": "de"}, "rationale": "German."},
+    {"id": "LI-06", "state": "Waar is het dichtstbijzijnde treinstation?", "labels": {"language": "nl"}, "meta": {"subset": "short", "lang": "nl"}, "rationale": "Dutch."},
+    {"id": "LI-07", "state": "¿Dónde está la estación de tren más cercana?", "labels": {"language": "other"}, "meta": {"subset": "short", "lang": "es"}, "rationale": "Spanish -> other."},
+    {"id": "LI-08", "state": "Jeg synes, at vejret har været rigtig dejligt i dag.", "labels": {"language": "da"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish ('dejligt', 'vejret')."},
+    {"id": "LI-09", "state": "Jeg synes været har vært veldig fint i dag.", "labels": {"language": "no"}, "meta": {"subset": "boundary", "lang": "no"}, "rationale": "Norwegian ('vært', 'veldig')."},
+    {"id": "LI-10", "state": "Jag tycker att vädret har varit riktigt fint idag.", "labels": {"language": "sv"}, "meta": {"subset": "short", "lang": "sv"}, "rationale": "Swedish."},
+    {"id": "LI-11", "state": "Kan du hjælpe mig med at nulstille min adgangskode?", "labels": {"language": "da"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish ('hjælpe', 'nulstille')."},
+    {"id": "LI-12", "state": "Kan du hjelpe meg med å tilbakestille passordet mitt?", "labels": {"language": "no"}, "meta": {"subset": "short", "lang": "no"}, "rationale": "Norwegian ('hjelpe meg', 'å')."},
+    {"id": "LI-13", "state": "Ik heb een vraag over mijn factuur.", "labels": {"language": "nl"}, "meta": {"subset": "short", "lang": "nl"}, "rationale": "Dutch."},
+    {"id": "LI-14", "state": "Ich habe eine Frage zu meiner Rechnung.", "labels": {"language": "de"}, "meta": {"subset": "short", "lang": "de"}, "rationale": "German."},
+    {"id": "LI-16", "state": "Merci beaucoup pour votre aide.", "labels": {"language": "other"}, "meta": {"subset": "short", "lang": "fr"}, "rationale": "French -> other."},
+    {"id": "LI-X01", "state": "Takk for maten!", "labels": {"language": "no"}, "meta": {"subset": "short", "lang": "no"}, "rationale": "Norwegian 'takk' (Danish 'tak', Swedish 'tack')."},
+    {"id": "LI-X02", "state": "Tak for mad!", "labels": {"language": "da"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish set phrase 'tak for mad' (Norwegian 'takk for maten')."},
+    {"id": "LI-X03", "state": "Tack för maten!", "labels": {"language": "sv"}, "meta": {"subset": "short", "lang": "sv"}, "rationale": "Swedish 'tack för' with ö."},
+    {"id": "LI-X04", "state": "Vi ses i morgen ved ottetiden.", "labels": {"language": "da"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish 'ottetiden' (Norwegian 'åttetiden')."},
+    {"id": "LI-X05", "state": "Vi sees i morgen ved åttetiden.", "labels": {"language": "no"}, "meta": {"subset": "short", "lang": "no"}, "rationale": "Norwegian 'åttetiden' (Danish 'ottetiden') and 'sees'."},
+    {"id": "LI-X06", "state": "Hvar er næsta strætóstoppistöð?", "labels": {"language": "other"}, "meta": {"subset": "short", "lang": "is"}, "rationale": "Icelandic (ð, 'hvar er', 'strætó'): other."},
+    {"id": "LI-X07", "state": "Hvussu gongur tað?", "labels": {"language": "other"}, "meta": {"subset": "short", "lang": "fo"}, "rationale": "Faroese ('hvussu', 'tað'): other."},
+    {"id": "LI-X08", "state": "Ek het 'n vraag oor my rekening.", "labels": {"language": "other"}, "meta": {"subset": "short", "lang": "af"}, "rationale": "Afrikaans ('ek', the article 'n), not Dutch ('ik heb een'): other."},
+    {"id": "LI-X09", "state": "Kun je me morgen even terugbellen?", "labels": {"language": "nl"}, "meta": {"subset": "short", "lang": "nl"}, "rationale": "Dutch ('kun je', 'even terugbellen')."}
+  ]
+}

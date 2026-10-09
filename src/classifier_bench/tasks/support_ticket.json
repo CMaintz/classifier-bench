@@ -1,0 +1,77 @@
+{
+  "task": "support_ticket",
+  "description": "Customer support triage: which team, is it urgent, and how does the customer feel. Three judgments per ticket in one call.",
+  "fallback": {
+    "team": "technical",
+    "urgent": true,
+    "sentiment": "neutral"
+  },
+  "questions": {
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this support ticket? Route to the team that can fix the root cause, even when the symptom shows up elsewhere (a declined payment that suspends an account goes to billing).",
+      "criteria": {
+        "billing": "Charges, refunds, invoices, payment methods, price changes, and disputes by existing customers about what they pay for.",
+        "technical": "Bugs, errors, outages, integrations, data or features not working as designed.",
+        "account": "One user's login, password, 2FA, SSO setup, profile, account ownership, takeover or deletion.",
+        "sales": "Pre-purchase questions, upgrades, quotes, demos, plan comparisons, new seats, compliance documents for a purchase."
+      }
+    },
+    "urgent": {
+      "type": "noul",
+      "instructions": "Does this ticket need a response within the hour? Answer yes only if the customer (or their team) cannot do their core work right now, is losing money right now, reports a security incident (account takeover, unauthorized access), or has a hard deadline within about an hour. A deadline later than that, a recurring annoyance, or a workaround that still lets them work does not count.",
+      "criteria": {
+        "true": "Blocked now, losing money now, security incident, or a deadline within the hour",
+        "false": "Can wait for the normal queue"
+      }
+    },
+    "sentiment": {
+      "type": "score",
+      "instructions": {
+        "question": "How does the customer sound, judged only by tone and wording (not by how serious the problem is)?",
+        "levels": {
+          "angry": "Hostility: insults, accusations, all-caps shouting, or threats.",
+          "frustrated": "Explicit annoyance: complaints about repetition, delay or effort, or saying they are giving up on the service.",
+          "neutral": "Factual or politely worded, even when the situation is serious or stressful.",
+          "positive": "Explicit praise, enthusiasm or thanks."
+        }
+      },
+      "criteria": [
+        "angry",
+        "frustrated",
+        "neutral",
+        "positive"
+      ]
+    }
+  },
+  "cases": [
+    {"id": "ST-01", "state": "You charged my card twice for the March invoice. I want one of them refunded.", "labels": {"team": "billing", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Double charge, stated calmly: neutral tone."},
+    {"id": "ST-02", "state": "THIS IS THE THIRD TIME. Your API is returning 500 on every checkout call and we are losing orders every minute. Fix it NOW.", "labels": {"team": "technical", "urgent": true, "sentiment": "angry"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Outage, losing money, caps."},
+    {"id": "ST-03", "state": "Hi! Could you tell me whether the Team plan includes SSO? We're thinking of upgrading next quarter.", "labels": {"team": "sales", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Pre-purchase question; friendly greeting but no praise or thanks: neutral."},
+    {"id": "ST-04", "state": "I lost my phone and can't get past 2FA. I have a client demo in 40 minutes and all my files are in there.", "labels": {"team": "account", "urgent": true, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Blocked with a demo in 40 minutes; worded factually."},
+    {"id": "ST-05", "state": "Please update the company name on our invoices from 'Nordlys ApS' to 'Nordlys A/S'.", "labels": {"team": "billing", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Invoice detail change."},
+    {"id": "ST-06", "state": "I think someone else logged into my account from Brazil last night, I got a new-device email I didn't trigger. Please lock it.", "labels": {"team": "account", "urgent": true, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Security incident, worried but factual wording."},
+    {"id": "ST-07", "state": "The CSV export puts dates in US format even though my locale is Danish. Not a big deal, just wanted to flag it.", "labels": {"team": "technical", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Minor bug."},
+    {"id": "ST-08", "state": "Love the product so far! We'd like a quote for 40 more seats with annual billing.", "labels": {"team": "sales", "urgent": false, "sentiment": "positive"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Seat expansion quote."},
+    {"id": "ST-09", "state": "How do I delete my account and all my data? I'm done with this service.", "labels": {"team": "account", "urgent": false, "sentiment": "frustrated"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Account deletion, fed up."},
+    {"id": "ST-10", "state": {"subject": "Webhook retries", "body": "Since your deploy this morning our webhook endpoint receives each event 5-6 times. Our handler is idempotent so nothing is broken, but our logs are noisy. Can you check?"}, "labels": {"team": "technical", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Bug, not blocking."},
+    {"id": "ST-11", "state": {"subject": "Payment failing, account suspended", "body": "Our card was declined because it expired, now the whole workspace is suspended and 30 people can't work. I updated the card but it still shows suspended. Please reactivate immediately."}, "labels": {"team": "billing", "urgent": true, "sentiment": "neutral"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Expired card suspended the workspace (billing root cause); 30 people blocked now; firm but factual wording."},
+    {"id": "ST-12", "state": "Your pricing page says 'unlimited projects' but I hit a limit at 50. Is that a bug or false advertising?", "labels": {"team": "billing", "urgent": false, "sentiment": "frustrated"}, "meta": {"subset": "boundary", "lang": "en", "contested": true, "second_annotator": {"team": "technical", "sentiment": "neutral"}}, "rationale": "Existing customer disputing what the plan they pay for includes: billing; complains about it: frustrated."},
+    {"id": "ST-13", "state": "Thanks for fixing the sync issue so fast yesterday, all good now! Closing this from my side.", "labels": {"team": "technical", "urgent": false, "sentiment": "positive"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Thanks on a technical thread."},
+    {"id": "ST-14", "state": {"conversation": [{"from": "customer", "text": "Refund for the annual plan please, we downgraded."}, {"from": "agent", "text": "We've issued a prorated refund of $310, it should appear in 5-10 days."}], "latest": "Three weeks and NOTHING. You people are thieves. I've asked twice already."}, "labels": {"team": "billing", "urgent": false, "sentiment": "angry"}, "meta": {"subset": "followup", "lang": "en"}, "rationale": "Refund follow-up with caps and an accusation: angry."},
+    {"id": "ST-15", "state": {"conversation": [{"from": "customer", "text": "SAML login fails with 'invalid audience'."}, {"from": "agent", "text": "Could you send us your IdP metadata?"}], "latest": "Attached. Also, since this morning I can't log in at all, not even with my password, so I can't get to any of my projects."}, "labels": {"team": "account", "urgent": true, "sentiment": "neutral"}, "meta": {"subset": "followup", "lang": "en"}, "rationale": "One user's SSO and login problem, blocked from working now, factual tone."},
+    {"id": "ST-16", "state": "We are evaluating you against two competitors. Our security team needs your SOC 2 report and a DPA before we can sign. The deal closes Friday.", "labels": {"team": "sales", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Deadline but not blocked or losing money now."},
+    {"id": "ST-17", "state": "Hello, I have been a customer for six years and I want to say first that I have usually been happy. However, over the past two months our team has experienced repeated issues where the mobile app logs us out at random, sometimes mid-way through filling a long form, and everything we typed is lost. We have reinstalled, cleared caches, tried different phones and networks. Your previous agent told us an update was coming but we have not seen any change. It costs us maybe an hour a week across the team. Could someone look into it properly this time? Thank you.", "labels": {"team": "technical", "urgent": false, "sentiment": "frustrated"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Long, polite but frustrated, recurring bug."},
+    {"id": "ST-18", "state": "Your invoice #4471 lists VAT although we gave you our EU VAT number for reverse charge. Our accounting closes the books tomorrow and we can't book an incorrect invoice. Please reissue it today.", "labels": {"team": "billing", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Deadline pressure, not blocked or losing money."},
+    {"id": "ST-X01", "state": "Your app has wiped my notes twice this month and your support people closed my last ticket without reading it. Either you are incompetent or you are lying about having fixed it.", "labels": {"team": "technical", "urgent": false, "sentiment": "angry"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Data-loss bug goes to technical; past incidents, not blocked now; insult and accusation without caps make it angry."},
+    {"id": "ST-X02", "state": "You took 899 kr from my account for a subscription I cancelled in June. That is theft, plain and simple, and if it isn't reversed by Friday I'm reporting you to the consumer ombudsman.", "labels": {"team": "billing", "urgent": false, "sentiment": "angry"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Charge dispute is billing; Friday is not within the hour; accusation of theft plus a threat is angry."},
+    {"id": "ST-X03", "state": "Really loving the new calendar view, it has made planning so much easier for us, thank you! One small thing: recurring events created on the 31st skip every month that has 30 days.", "labels": {"team": "technical", "urgent": false, "sentiment": "positive"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Explicit praise and thanks make it positive; the reported bug is technical and not blocking."},
+    {"id": "ST-X04", "state": "Hi, I just got a notification that my password was changed and a new phone number was added for two-step login. I didn't do either of those. I'm writing from my personal address because I can no longer sign in.", "labels": {"team": "account", "urgent": true, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Account takeover of one user is account and a security incident (urgent), reported in calm factual wording (neutral)."},
+    {"id": "ST-X05", "state": "Tusind tak for den hurtige hjælp i går, I er virkelig gode! Nu vil vi gerne høre, hvad det koster at tilføje 15 brugere mere til vores abonnement.", "labels": {"team": "sales", "urgent": false, "sentiment": "positive"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Price for new seats is sales; explicit thanks and praise make it positive; no time pressure."},
+    {"id": "ST-X06", "state": "Seit 9:40 Uhr sehen alle unsere Mitarbeiter beim Öffnen des Dashboards nur einen weißen Bildschirm, sodass niemand Aufträge bearbeiten kann. Browser und Rechner haben wir schon gewechselt.", "labels": {"team": "technical", "urgent": true, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "de"}, "rationale": "Outage blocking the whole team's core work now is technical and urgent; stated factually."},
+    {"id": "ST-X07", "state": "Third email about this. Your reset link has been broken since Monday and I can't get into any of my work. Are you people completely useless?", "labels": {"team": "account", "urgent": true, "sentiment": "angry"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "One user's password reset and login is account; locked out of all work now is urgent; the insult makes it angry even without caps."},
+    {"id": "ST-X08", "state": "Hello, I want to start by saying how much our clinic appreciates your system. Since we switched last spring our receptionists spend far less time on the phone, patients love the text reminders, and your onboarding team was genuinely excellent, especially Camilla, who stayed late with us on go-live day. Thank you all for that. My actual request is a small administrative one. Our accountant has asked us to stop paying subscriptions by company credit card, because the card is being replaced by a new expense policy at the end of the year. Could you switch our account to paying by bank transfer against an invoice, with 30 days payment terms if that is possible? The invoice should still go to the same address and to our bookkeeping mailbox. There is no rush on this, the current card works until December, but we would like it sorted before then so nothing gets interrupted. If you need a signed form or our company registration number, just let me know and I will send it over. Best regards, Hanne, practice manager", "labels": {"team": "billing", "urgent": false, "sentiment": "positive"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Changing payment method is billing; the customer says there is no rush; explicit praise and thanks make it positive."},
+    {"id": "ST-X09", "state": "The checkout widget on our webshop has returned 'gateway timeout' for every customer since 11:00, so we are not taking any orders. I've already spent an hour going round in circles with your chatbot, which is exhausting. Please get a human on this.", "labels": {"team": "technical", "urgent": true, "sentiment": "frustrated"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "A broken integration losing sales now is technical and urgent; complaint about effort without insults is frustrated."},
+    {"id": "ST-X10", "state": "Hei, vi vurderer å kjøpe Enterprise-planen. Er opplæring for nye brukere inkludert, og hva koster planen for 60 brukere?", "labels": {"team": "sales", "urgent": false, "sentiment": "neutral"}, "meta": {"subset": "short", "lang": "no"}, "rationale": "Pre-purchase question is sales; no time pressure; factual wording without thanks or praise is neutral."}
+  ]
+}

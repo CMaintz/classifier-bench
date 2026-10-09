@@ -1,0 +1,55 @@
+{
+  "task": "review_sentiment",
+  "description": "Ordered 5-level sentiment of product reviews (Score primitive; tests ordinal distance, not just exact match).",
+  "fallback": {
+    "rating": "mixed"
+  },
+  "questions": {
+    "rating": {
+      "type": "score",
+      "instructions": {
+        "question": "Overall sentiment of this product review toward the product (not the seller or shipping).",
+        "levels": {
+          "very_negative": "Strong condemnation: the product is called worthless or broken, with words like garbage, never again, worst.",
+          "negative": "Disappointed overall, including sarcastic complaints and returns, without strong condemnation.",
+          "mixed": "Neutral, or real praise and real complaints that roughly balance.",
+          "positive": "Satisfied overall, possibly with minor caveats.",
+          "very_positive": "Enthusiastic: best purchase, love it, highly recommend."
+        }
+      },
+      "criteria": [
+        "very_negative",
+        "negative",
+        "mixed",
+        "positive",
+        "very_positive"
+      ]
+    }
+  },
+  "cases": [
+    {"id": "RS-01", "state": "Absolute garbage. Broke on day two and support ignored me. Never again.", "labels": {"rating": "very_negative"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Strongly negative."},
+    {"id": "RS-02", "state": "Not great. The battery barely lasts a day and the app is clunky.", "labels": {"rating": "negative"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Negative."},
+    {"id": "RS-03", "state": "Sound quality is excellent but the ear cushions hurt after an hour.", "labels": {"rating": "mixed"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Balanced."},
+    {"id": "RS-04", "state": "Does what it says. Setup was easy, happy with it.", "labels": {"rating": "positive"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Positive."},
+    {"id": "RS-05", "state": "Best purchase I've made all year!!! Everyone in the family loves it.", "labels": {"rating": "very_positive"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Very positive."},
+    {"id": "RS-06", "state": "Oh great, another charger that stops working after a week. Just what I needed.", "labels": {"rating": "negative"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Sarcastic complaint about a failure, no strong condemnation words."},
+    {"id": "RS-07", "state": "It's fine. Nothing special, nothing bad.", "labels": {"rating": "mixed"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Neutral reads as mixed level."},
+    {"id": "RS-08", "state": "Arrived late and the box was damaged, but the blender itself works perfectly and is really powerful.", "labels": {"rating": "positive"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Shipping complaint, product praised."},
+    {"id": "RS-09", "state": "I wanted to love this, the design is gorgeous, but it overheats constantly and I returned it.", "labels": {"rating": "negative"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Returned; negative overall."},
+    {"id": "RS-10", "state": "Fantastisk produkt, virker præcis som lovet. Kan varmt anbefales!", "labels": {"rating": "very_positive"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish: fantastic, warmly recommended."},
+    {"id": "RS-11", "state": "Elendig kvalitet, gik i stykker efter tre dage.", "labels": {"rating": "very_negative"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish: miserable quality, broke after three days."},
+    {"id": "RS-12", "state": "Den er ok til prisen, men lyden kunne være bedre.", "labels": {"rating": "mixed"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish: ok for the price, sound could be better."},
+    {"id": "RS-13", "state": "Good value. A couple of rough edges in the software but updates keep improving it.", "labels": {"rating": "positive"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Positive with caveats."},
+    {"id": "RS-14", "state": "Worked for three months, then the screen started flickering. Warranty replacement took six weeks. The replacement works, but I wouldn't buy it again.", "labels": {"rating": "negative"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Would not buy again."},
+    {"id": "RS-15", "state": "I've owned this coffee machine for two years now and use it every single morning. The first few weeks I struggled with the grind settings and the milk frother took some practice, and I did have to descale it more often than the manual suggested because our water is hard. That said, once dialed in, the espresso is honestly better than most cafes in my town, the build feels solid, and the one time a gasket failed the company shipped a new one free within days. Pricey, but worth every krone.", "labels": {"rating": "very_positive"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Long, early friction, strongly positive conclusion."},
+    {"id": "RS-16", "state": "Ordered the large size for my dog. The material looked sturdy in photos but in person it's thin and the stitching came apart along one seam within a week of normal use. The dog likes it, to be fair, and it washes fine. Customer service offered 10% off a future order, which doesn't help much. For the price I expected it to last at least a season.", "labels": {"rating": "negative"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Long, mostly negative with small positives."},
+    {"id": "RS-X01", "state": "The seller took three weeks to ship and never answered my messages. The headlamp itself is great though: bright, light, and the battery lasts a whole weekend.", "labels": {"rating": "positive"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Complaints concern the seller; the product itself is praised without reservations of its own: positive."},
+    {"id": "RS-X02", "state": "Worst kettle I have ever owned. It leaks from the base and the lid won't stay shut.", "labels": {"rating": "very_negative"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "'Worst ... ever' with the product failing is strong condemnation."},
+    {"id": "RS-X03", "state": "Skuffende. Den holder ikke varmen nær så længe som lovet, så jeg har sendt den retur.", "labels": {"rating": "negative"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish: disappointed and returned, without strong condemnation words."},
+    {"id": "RS-X04", "state": "Bästa köpet i år! Jag älskar den och rekommenderar den varmt till alla.", "labels": {"rating": "very_positive"}, "meta": {"subset": "short", "lang": "sv"}, "rationale": "Swedish: best purchase, love it, warmly recommended."},
+    {"id": "RS-X05", "state": "Das Display ist hervorragend, aber der Akku hält kaum einen halben Tag.", "labels": {"rating": "mixed"}, "meta": {"subset": "short", "lang": "de"}, "rationale": "German: strong praise for the display balanced by a serious battery complaint."},
+    {"id": "RS-X06", "state": "Lovely, the 'waterproof' watch fogged up in the shower on day one. Sending it back.", "labels": {"rating": "negative"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Sarcastic complaint and a return, without strong condemnation words."},
+    {"id": "RS-X07", "state": "I've been using this robot vacuum for about two months in a three-room flat with mostly wooden floors and one large rug. The good: it maps the flat accurately after two runs, the app lets me block off the area under the desk where the cables are, and on hard floors it picks up far more dust and dog hair than I expected. It is also quieter than my old one. The bad: it gets stuck on the rug tassels almost every run, so I have to rescue it, the bin is tiny and needs emptying after each room, and the scheduled runs sometimes just don't start, with no error in the app. Battery life is fine for my flat but would not cover a house. Overall it does a really good job when it works and annoys me about as often as it impresses me. I'm genuinely on the fence about whether I'd buy it again.", "labels": {"rating": "mixed"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Real praise and real complaints that the reviewer says balance out."},
+    {"id": "RS-X08", "state": "Bought this standing desk for my home office in June and have used it daily since. Assembly took about an hour on my own; the instructions were clear and all the screws were labelled, though one of the holes for the crossbar needed a bit of force. The motor is smooth and reasonably quiet, the memory presets work every time, and at its highest setting there is only a little wobble, which I only notice when typing hard. The surface has held up well against coffee cups, a monitor arm clamp and a cat who likes to sit on it. The cable tray is a bit small for everything I have, so I added a second one, which cost very little. For the price I'm satisfied: it does what I need, it feels sturdy, and my back is thanking me. Not perfect, but a solid desk that I'd be fine recommending to a colleague who asked.", "labels": {"rating": "positive"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Satisfied overall with minor caveats, not enthusiastic."}
+  ]
+}

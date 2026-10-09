@@ -1,0 +1,54 @@
+{
+  "task": "code_review_severity",
+  "description": "Ordered severity of a code change finding (Leash-style review routing): how bad is this if merged.",
+  "fallback": {
+    "severity": "major"
+  },
+  "questions": {
+    "severity": {
+      "type": "score",
+      "instructions": {
+        "question": "How severe is the problem this code change introduces if it is merged as is?",
+        "levels": {
+          "none": "No problem introduced (docs, harmless comments, fixes).",
+          "minor": "Style, naming, logging or test hygiene; no effect on users or data.",
+          "major": "Incorrect behavior, data inconsistency, resource leak, information disclosure, or a group of users loses a function.",
+          "critical": "Authentication bypass, injection, secret exposure, or irreversible data loss."
+        }
+      },
+      "criteria": [
+        "none",
+        "minor",
+        "major",
+        "critical"
+      ]
+    }
+  },
+  "cases": [
+    {"id": "CR-01", "state": {"file": "auth/login.py", "diff": "-    if not verify_password(user.hash, password):\n-        raise Unauthorized()\n+    # TODO re-enable after demo\n+    pass"}, "labels": {"severity": "critical"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Disables authentication."},
+    {"id": "CR-02", "state": {"file": "README.md", "diff": "-Install with pip.\n+Install with `pip install mytool`."}, "labels": {"severity": "none"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Docs improvement."},
+    {"id": "CR-03", "state": {"file": "utils/format.ts", "diff": "-export const fmt = (n: number) => n.toFixed(2)\n+export const fmt = (n: number) => n.toFixed(2) // formats"}, "labels": {"severity": "none"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Redundant comment only."},
+    {"id": "CR-04", "state": {"file": "api/users.js", "diff": "+app.get('/users', (req, res) => {\n+  db.query(`SELECT * FROM users WHERE name = '${req.query.name}'`).then(r => res.json(r))\n+})"}, "labels": {"severity": "critical"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "SQL injection."},
+    {"id": "CR-05", "state": {"file": "billing/invoice.py", "diff": "-    total = sum(line.amount for line in lines)\n+    total = sum(line.amount for line in lines[1:])"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Drops first line item: wrong totals."},
+    {"id": "CR-06", "state": {"file": "src/list.py", "diff": "-def get_items(items):\n+def getItems(items):\n@@ src/views.py\n-    rows = get_items(raw)\n+    rows = getItems(raw)"}, "labels": {"severity": "minor"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Private helper renamed against PEP 8; its only call site is updated."},
+    {"id": "CR-07", "state": {"file": "worker/retry.go", "diff": "-for attempt := 0; attempt < 5; attempt++ {\n+for {\n     err = send(msg)\n     if err == nil { break }\n }"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Unbounded retry loop without backoff."},
+    {"id": "CR-08", "state": {"file": "config/prod.env", "diff": "+STRIPE_SECRET_KEY=sk_live_51Hx9aQ2eZvKYlo2C8xYz"}, "labels": {"severity": "critical"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Committed live secret."},
+    {"id": "CR-09", "state": {"file": "ui/Button.tsx", "diff": "-<button onClick={save}>Save</button>\n+<div onClick={save}>Save</div>"}, "labels": {"severity": "major"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "A div is not keyboard-focusable: keyboard and screen-reader users lose Save."},
+    {"id": "CR-10", "state": {"file": "tests/test_parser.py", "diff": "-    assert parse('1,2') == [1, 2]\n+    # assert parse('1,2') == [1, 2]  flaky"}, "labels": {"severity": "minor"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Disables a test; no prod impact directly."},
+    {"id": "CR-11", "state": {"file": "cache/store.py", "diff": "-    self._data[key] = value\n+    self._data[key] = value\n+    self._log.append((key, value))  # for debugging"}, "labels": {"severity": "major"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Unbounded growth in a long-lived cache: memory leak."},
+    {"id": "CR-12", "state": {"file": "api/handlers.ts", "diff": "-  } catch (err) {\n-    logger.error(err); return res.status(500).end()\n+  } catch (err) {\n+    return res.status(500).json({ error: err.stack })"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Leaks stack traces to clients."},
+    {"id": "CR-13", "state": {"file": "src/math.rs", "diff": "-    let avg = sum / count;\n+    let avg = if count == 0 { 0 } else { sum / count };"}, "labels": {"severity": "none"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Fix for divide by zero; no problem introduced."},
+    {"id": "CR-14", "state": {"file": "deploy/migrate.sql", "diff": "+ALTER TABLE orders DROP COLUMN customer_email;"}, "labels": {"severity": "critical"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Irreversible data loss in prod migration."},
+    {"id": "CR-15", "state": {"file": "src/log.py", "diff": "-logger.info('user %s logged in', user.id)\n+print('user logged in', user.id)"}, "labels": {"severity": "minor"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Bypasses logging config."},
+    {"id": "CR-16", "state": {"file": "orders/service.ts", "diff": "-  await db.transaction(async tx => {\n-    await tx.orders.insert(order)\n-    await tx.stock.decrement(order.items)\n-  })\n+  await db.orders.insert(order)\n+  await db.stock.decrement(order.items)"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Removes transaction: partial writes on failure."},
+    {"id": "CR-X01", "state": {"file": "wallet/account.py", "diff": " def withdraw(self, amount):\n-    with self._lock:\n-        if self.balance >= amount:\n-            self.balance -= amount\n-            return True\n-    return False\n+    if self.balance >= amount:\n+        self.balance -= amount\n+        return True\n+    return False"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Removing the lock lets concurrent withdrawals pass the check together: incorrect behavior and inconsistent balances."},
+    {"id": "CR-X02", "state": {"file": "orders/list.py", "diff": " def list_orders(page: int = 1, page_size: int = 50):\n-    offset = (page - 1) * page_size\n+    offset = page * page_size\n     return db.orders.all().offset(offset).limit(page_size)"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "With 1-based pages the first page of orders is never returned: incorrect behavior."},
+    {"id": "CR-X03", "state": {"file": "packages/sdk/src/index.ts", "diff": "-export { createClient, createLegacyClient } from './client'\n+export { createClient } from './client'"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Drops a public export, so SDK users who call createLegacyClient lose that function."},
+    {"id": "CR-X04", "state": {"file": "admin/views.py", "diff": " def delete_user(request, user_id):\n-    if request.user.role != 'admin':\n+    if request.user.role != 'admin' and not request.GET.get('debug'):\n         abort(403)\n     User.objects.filter(id=user_id).delete()"}, "labels": {"severity": "critical"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Any user can skip the admin check by adding ?debug=1: authentication bypass."},
+    {"id": "CR-X05", "state": {"file": "auth/login.ts", "diff": " export async function login(username: string, password: string) {\n+  logger.info(`login attempt user=${username} password=${password}`)\n   const user = await users.find(username)"}, "labels": {"severity": "critical"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Writes plaintext user passwords to logs: secret exposure."},
+    {"id": "CR-X06", "state": {"file": "README.da.md", "diff": "-Installer med pip.\n+Installer med `pip install mytool`."}, "labels": {"severity": "none"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Danish docs improvement only."},
+    {"id": "CR-X07", "state": {"file": "sync/kunder.py", "diff": " def opdater_kunder(kunder):\n     for kunde in kunder:\n-        with db.connect() as forbindelse:\n-            forbindelse.execute(OPDATER_SQL, kunde.id)\n+        forbindelse = db.connect()  # ny forbindelse pr. kunde\n+        forbindelse.execute(OPDATER_SQL, kunde.id)"}, "labels": {"severity": "major"}, "meta": {"subset": "short", "lang": "da"}, "rationale": "Opens a database connection per customer and never closes it: resource leak."},
+    {"id": "CR-X08", "state": {"file": "src/report.py", "diff": " def build_report(rows):\n     total = sum(r.amount for r in rows)\n+    print('here')\n     return Report(total=total)"}, "labels": {"severity": "minor"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "A leftover debug print with no data in it: logging hygiene only, no effect on users or data."},
+    {"id": "CR-X09", "state": {"file": "migrations/0042_cleanup.sql", "diff": "+DELETE FROM invoices WHERE created_at < '2026-01-01';"}, "labels": {"severity": "critical"}, "meta": {"subset": "short", "lang": "en"}, "rationale": "Permanently deletes every invoice created before 2026: irreversible data loss."}
+  ]
+}

@@ -10,7 +10,14 @@ from dataclasses import replace
 from .corpus import Case, Task
 
 DOMAINS: dict[str, tuple[str, ...]] = {
-    "routing": ("tier_routing", "banking_intent", "banking77", "clinc_bank_scope", "massive_scenario_da"),
+    "routing": (
+        "tier_routing",
+        "department_routing",
+        "banking_intent",
+        "banking77",
+        "clinc_bank_scope",
+        "massive_scenario_da",
+    ),
     "support": ("support_ticket", "danish_support", "issue_triage", "issue_kind_nlbse", "duplicate_issue"),
     "safety": (
         "toxicity",

@@ -1,0 +1,73 @@
+{
+  "task": "department_routing",
+  "description": "Phone switchboard routing: send a caller to the one department that should take the call, under a fixed department list with a priority rule for calls that ask for more than one thing.",
+  "fallback": {
+    "department": "reception"
+  },
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "This is the opening of a phone call (speech-to-text) to Nordvik Energi, an electricity and gas supplier. Which department should the switchboard put the caller through to? Route by what the caller asks to have done, not by words they happen to mention. If the caller asks for more than one thing, pick the first department in this priority order that matches any of their requests: emergency, cancellations, complaints, moving, technical, billing, sales. Use reception only when none of them matches.",
+      "criteria": {
+        "emergency": "Immediate danger to people or property: smell of gas, smoke, fire, sparks, exposed or fallen cables. Always wins, even if the caller mentions it in passing or calls on someone else's behalf.",
+        "cancellations": "The caller asks to end their contract, asks how to end it, or follows up on a termination, for any reason other than moving. A threat to leave without asking to end the contract does not count.",
+        "complaints": "A formal complaint (the caller asks to complain or escalate), a complaint about staff or an engineer visit, a claim for compensation, or chasing an earlier case nobody resolved. A disputed bill without a request to complain is billing.",
+        "moving": "Starting, stopping or transferring supply because someone moves in or out of an address, including a new resident who is not yet a customer, and a change of contract holder at the same address.",
+        "technical": "No power or gas, faults with the meter, the app's usage data, or installed equipment that does not work.",
+        "billing": "Invoices, amounts charged, payment dates, direct debit, bank details, payment plans and refunds, including a final balance after leaving.",
+        "sales": "New customers switching in, quotes, changing to a different plan or price, and buying products (solar panels, heat pumps, smart meters, charging boxes).",
+        "reception": "None of the above: asks for a named person, a wrong number, the press, or too unclear to route."
+      }
+    }
+  },
+  "cases": [
+    {"id": "DR-01", "state": "Hi, I got my bill for March and it's almost double what I normally pay. Can someone go through it with me?", "labels": {"department": "billing"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Disputed amount, no request to complain."},
+    {"id": "DR-02", "state": "Hello, I'd like to set up direct debit so I stop forgetting to pay.", "labels": {"department": "billing"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Direct debit."},
+    {"id": "DR-03", "state": "Um, I lost my job last month and I can't pay the full amount this time. Is there any way to split it up?", "labels": {"department": "billing"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Payment plan."},
+    {"id": "DR-04", "state": "Yeah hi, the whole street has had no power since about an hour ago. Do you know what's going on?", "labels": {"department": "technical"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Outage, no danger described."},
+    {"id": "DR-05", "state": "The display on my electricity meter has gone completely blank.", "labels": {"department": "technical"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Meter fault."},
+    {"id": "DR-06", "state": "Your app has been showing zero usage for the last two weeks, which can't be right.", "labels": {"department": "technical"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "App usage data."},
+    {"id": "DR-07", "state": "There's a really strong smell of gas in my basement, right by the meter.", "labels": {"department": "emergency"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Gas smell."},
+    {"id": "DR-08", "state": "After the storm a cable is hanging down from the pole on our road and it's sparking.", "labels": {"department": "emergency"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Fallen, sparking cable."},
+    {"id": "DR-09", "state": "We're moving out of Elm Road 4 on the 30th and into a flat on Park Lane. Can you move our electricity over?", "labels": {"department": "moving"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Move out and in."},
+    {"id": "DR-10", "state": "Hi, I've just bought a house on Birch Close and I'm not with you yet. I need electricity there from the first of the month.", "labels": {"department": "moving"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "New resident who is not a customer: moving, not sales."},
+    {"id": "DR-11", "state": "I'm with another supplier at the moment and I'd like a quote for switching to you.", "labels": {"department": "sales"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "New customer switching in."},
+    {"id": "DR-12", "state": "Do you have a fixed-price plan? I'd like to change from the variable one I'm on.", "labels": {"department": "sales"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Change of plan."},
+    {"id": "DR-13", "state": "I saw your ad for heat pumps. What would one cost for a house of about 140 square metres?", "labels": {"department": "sales"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Buying a product."},
+    {"id": "DR-14", "state": "I want to end my contract. I've found a cheaper supplier.", "labels": {"department": "cancellations"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Ends contract, not moving."},
+    {"id": "DR-15", "state": "Quick question, what's the notice period if I want to cancel?", "labels": {"department": "cancellations"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Asks how to end the contract."},
+    {"id": "DR-16", "state": "I want to make a formal complaint about the engineer who came yesterday. He was rude and left mud all over the hallway.", "labels": {"department": "complaints"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Complaint about an engineer visit."},
+    {"id": "DR-17", "state": "This is the fourth time I'm calling about the same thing and nobody ever gets back to me. I want it escalated.", "labels": {"department": "complaints"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Chasing an unresolved case, asks to escalate."},
+    {"id": "DR-18", "state": "Hi, can I speak to Mette Hansen? She called me earlier today.", "labels": {"department": "reception"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Asks for a named person."},
+    {"id": "DR-19", "state": "Hello? Is this the pharmacy on Main Street?", "labels": {"department": "reception"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Wrong number."},
+    {"id": "DR-20", "state": "Yeah hi, it's about the thing from before.", "labels": {"department": "reception"}, "meta": {"subset": "unclear", "lang": "en"}, "rationale": "Too unclear to route."},
+    {"id": "DR-21", "state": "I'm moving abroad for good, so I need to stop my electricity at the end of the month.", "labels": {"department": "moving"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Stopping supply because of a move: moving, not cancellations."},
+    {"id": "DR-22", "state": "My bill is wrong again, and this time I want to file a formal complaint about it.", "labels": {"department": "complaints"}, "meta": {"subset": "multi", "lang": "en"}, "rationale": "Asks to complain; complaints outranks billing."},
+    {"id": "DR-23", "state": "Before I forget, I can smell gas in the kitchen, but I'm actually calling about my bill.", "labels": {"department": "emergency"}, "meta": {"subset": "multi", "lang": "en"}, "rationale": "Danger mentioned in passing still wins."},
+    {"id": "DR-24", "state": "My meter has been broken for months and you keep charging me estimated amounts. I want the meter fixed and the bill corrected.", "labels": {"department": "technical"}, "meta": {"subset": "multi", "lang": "en"}, "rationale": "Two requests; technical outranks billing."},
+    {"id": "DR-25", "state": "We're moving to a bigger house next month, and while we're at it we'd like to hear about solar panels.", "labels": {"department": "moving"}, "meta": {"subset": "multi", "lang": "en"}, "rationale": "Two requests; moving outranks sales."},
+    {"id": "DR-26", "state": "If you don't lower my price I'm leaving. What can you offer me?", "labels": {"department": "sales"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "A threat to leave without asking to end; asks for a better price."},
+    {"id": "DR-27", "state": "No complaints at all, I just want to know when my next bill is due.", "labels": {"department": "billing"}, "meta": {"subset": "trap", "lang": "en"}, "rationale": "The word complaint is negated; payment date."},
+    {"id": "DR-28", "state": "I'm calling for my neighbour, she's 85. There's smoke coming out of her fuse box.", "labels": {"department": "emergency"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Smoke, on someone else's behalf."},
+    {"id": "DR-29", "state": "We had no power for fourteen hours last week. How do I claim the compensation?", "labels": {"department": "complaints"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Compensation claim, not a current outage."},
+    {"id": "DR-30", "state": "I left you back in June but I still haven't had my final balance refunded.", "labels": {"department": "billing"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Refund of a final balance; contract already ended."},
+    {"id": "DR-31", "state": "We're staying in the same house, but my partner is taking over the contract from me.", "labels": {"department": "moving"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Change of contract holder at the same address."},
+    {"id": "DR-32", "state": "I'd like a smart meter put in. How much does that cost?", "labels": {"department": "sales"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Buying a smart meter, not a fault."},
+    {"id": "DR-33", "state": "Hi, sorry, we just got back from three weeks in Portugal, lovely weather, the kids loved it, anyway the reason I'm calling is that we've changed banks and I need to update the account you take the payments from.", "labels": {"department": "billing"}, "meta": {"subset": "long", "lang": "en"}, "rationale": "Bank details for payments, after small talk."},
+    {"id": "DR-34", "state": "Hello, I'm a journalist with the local paper and I'd like a comment on the price rise you announced.", "labels": {"department": "reception"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Press: no department."},
+    {"id": "DR-35", "state": "The charging box you installed for our electric car has stopped working.", "labels": {"department": "technical"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Installed equipment not working."},
+    {"id": "DR-36", "state": "I'm moving in with my girlfriend, she already has a contract with you, so I won't need mine anymore.", "labels": {"department": "moving"}, "meta": {"subset": "boundary", "lang": "en"}, "rationale": "Ending because of a move: moving."},
+    {"id": "DR-37", "state": "Could you send me the form to terminate my contract, please?", "labels": {"department": "cancellations"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Asks how to end the contract."},
+    {"id": "DR-38", "state": "The service has been fine, but I'd like to cancel. My employer has a scheme with another supplier.", "labels": {"department": "cancellations"}, "meta": {"subset": "clear", "lang": "en"}, "rationale": "Ends contract, not moving."},
+    {"id": "DR-39", "state": "Der lugter af gas i opgangen.", "labels": {"department": "emergency"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Gas smell in the stairwell."},
+    {"id": "DR-40", "state": "Jeg vil gerne opsige min aftale, jeg har fundet en billigere.", "labels": {"department": "cancellations"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Ends contract, not moving."},
+    {"id": "DR-41", "state": "Vi flytter til Aarhus den første, kan I flytte strømmen med?", "labels": {"department": "moving"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Move."},
+    {"id": "DR-42", "state": "Min regning er forkert, og jeg vil gerne klage formelt over det.", "labels": {"department": "complaints"}, "meta": {"subset": "multi", "lang": "da"}, "rationale": "Asks to complain; complaints outranks billing."},
+    {"id": "DR-43", "state": "Hvornår bliver betalingen for kvartalet trukket?", "labels": {"department": "billing"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Payment date."},
+    {"id": "DR-44", "state": "Vi har ingen strøm i huset, og naboerne har heller ikke.", "labels": {"department": "technical"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Outage, no danger."},
+    {"id": "DR-45", "state": "Hvad koster et solcelleanlæg hos jer?", "labels": {"department": "sales"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Buying a product."},
+    {"id": "DR-46", "state": "Er det Lars fra montage? Han sagde, jeg skulle ringe.", "labels": {"department": "reception"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Asks for a named person."},
+    {"id": "DR-47", "state": "Kan I bekræfte, at I har modtaget min opsigelse?", "labels": {"department": "cancellations"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Follows up on a termination."},
+    {"id": "DR-48", "state": "Teknikeren, der var her i går, var direkte uhøflig. Jeg vil gerne klage.", "labels": {"department": "complaints"}, "meta": {"subset": "clear", "lang": "da"}, "rationale": "Complaint about an engineer."}
+  ]
+}

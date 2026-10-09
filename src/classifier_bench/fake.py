@@ -30,6 +30,18 @@ class Profile:
 
 JEV_PROFILE = Profile(median_ms=125.0, sigma=0.25, accuracy=0.9)
 CLAUDE_PROFILE = Profile(median_ms=690.0, sigma=0.2, accuracy=0.8)
+DECISIONS_PROFILE = Profile(median_ms=180.0, sigma=0.25, accuracy=0.87)
+CLEF_PROFILE = Profile(median_ms=210.0, sigma=0.3, accuracy=0.85)
+PROFILES = {"jev": JEV_PROFILE, "claude": CLAUDE_PROFILE, "decisions": DECISIONS_PROFILE, "clef": CLEF_PROFILE}
+
+
+def kind_of(request: Request) -> str:
+    """Which provider a request is for, by its endpoint."""
+    if request.url.endswith("/messages"):
+        return "claude"
+    if request.url.endswith("/decisions"):
+        return "decisions"
+    return "clef" if "/ai/run/" in request.url else "jev"
 
 
 @dataclass
@@ -47,13 +59,13 @@ class FakeTransport:
     oracle: dict[str, dict[str, Any]]
     clock: FakeClock
     seed: int = 0
-    profiles: dict[str, Profile] = field(default_factory=lambda: {"jev": JEV_PROFILE, "claude": CLAUDE_PROFILE})
+    profiles: dict[str, Profile] = field(default_factory=lambda: dict(PROFILES))
 
     def __post_init__(self) -> None:
         self._rng = random.Random(self.seed)
 
     def __call__(self, request: Request, timeout_s: float) -> Response:
-        kind = "claude" if request.url.endswith("/messages") else "jev"
+        kind = kind_of(request)
         profile = self.profiles[kind]
         elapsed = self._rng.lognormvariate(math.log(profile.median_ms), profile.sigma) / 1000
         self.clock.now += min(elapsed, timeout_s)
@@ -67,22 +79,19 @@ class FakeTransport:
         )
 
     def _body(self, kind: str, request: Request, profile: Profile) -> bytes:
-        state = request.body["state"] if kind == "jev" else json.loads(request.body["messages"][0]["content"])["state"]
-        questions = (
-            request.body["questions"]
-            if kind == "jev"
-            else json.loads(request.body["messages"][0]["content"])["questions"]
-        )
+        state, questions = _request_parts(kind, request)
         gold = self.oracle.get(stable_hash(state), {})
         raw = {qid: self._answer(q, gold.get(qid), profile.accuracy) for qid, q in questions.items()}
+        usage = {"input_tokens": len(json.dumps(request.body)) // 4, "output_tokens": 8 * len(raw)}
         if kind == "jev":
-            usage = {"input_tokens": len(json.dumps(request.body)) // 4, "output_tokens": 8 * len(raw)}
             return json.dumps({"model": "jev-1.13.0", "answers": _jev_shape(raw, questions), "usage": usage}).encode()
-        usage = {"input_tokens": len(json.dumps(request.body)) // 4 + 300, "output_tokens": 40 * len(raw)}
-        usage |= {"cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}
-        content = [{"type": "text", "text": json.dumps(_claude_shape(raw, questions))}]
-        model = request.body["model"]
-        return json.dumps({"model": model, "content": content, "stop_reason": "end_turn", "usage": usage}).encode()
+        if kind == "clef":
+            result = {"model": request.body["model"], "answers": _jev_shape(raw, questions), "usage": usage}
+            return json.dumps({"result": result, "success": True, "errors": [], "messages": []}).encode()
+        if kind == "decisions":
+            answers = _decisions_shape(raw, questions)
+            return json.dumps({"model": request.body["model"], "answers": answers, "usage": usage}).encode()
+        return _claude_body(request, raw, questions)
 
     def _answer(self, question: dict[str, Any], gold: Any, accuracy: float) -> tuple[Any, float]:
         right = self._rng.random() < accuracy
@@ -129,3 +138,53 @@ def _claude_shape(raw: dict[str, tuple[Any, float]], questions: dict[str, Any]) 
         else:
             out[qid] = {"answer": pick, "probabilities": _spread(options(q), pick, conf)}
     return out
+
+
+def _request_parts(kind: str, request: Request) -> tuple[Any, dict[str, Any]]:
+    """(state, questions in Jev's shape) as the oracle sees them, whatever the provider's wire shape."""
+    body = request.body
+    if kind == "claude":
+        user = json.loads(body["messages"][0]["content"])
+        return user["state"], user["questions"]
+    if kind == "decisions":
+        questions = {q["name"]: _from_decisions(q) for q in body["questions"]}
+        return _state_of(body["input"]), questions
+    return body["state"], body["questions"]
+
+
+def _state_of(text: str) -> Any:
+    """Decisions sends object states as JSON text; recover the object so the oracle hash matches."""
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    return value if isinstance(value, dict) else text
+
+
+def _from_decisions(q: dict[str, Any]) -> dict[str, Any]:
+    if q["type"] == "predicate":
+        return {"type": "noul"}
+    if q["type"] == "choice":
+        return {"type": "choice", "criteria": {c["value"]: "" for c in q["choices"]}}
+    return {"type": "score", "criteria": [lv["label"] for lv in q["levels"]]}
+
+
+def _decisions_shape(raw: dict[str, tuple[Any, float]], questions: dict[str, Any]) -> list[dict[str, Any]]:
+    out = []
+    for qid, answer in _jev_shape(raw, questions).items():
+        if answer["type"] == "noul":
+            out.append({"type": "predicate", "name": qid, "probability": answer["noul"]})
+            continue
+        probs = [{"value": k, "label": k, "probability": p} for k, p in answer["probabilities"].items()]
+        extra = {"choice": answer["choice"]} if answer["type"] == "choice" else {"score": answer["score"]}
+        conf = answer["confidence"]
+        out.append({"type": answer["type"], "name": qid, **extra, "probabilities": probs, "confidence": conf})
+    return out
+
+
+def _claude_body(request: Request, raw: dict[str, tuple[Any, float]], questions: dict[str, Any]) -> bytes:
+    usage = {"input_tokens": len(json.dumps(request.body)) // 4 + 300, "output_tokens": 40 * len(raw)}
+    usage |= {"cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}
+    content = [{"type": "text", "text": json.dumps(_claude_shape(raw, questions))}]
+    model = request.body["model"]
+    return json.dumps({"model": model, "content": content, "stop_reason": "end_turn", "usage": usage}).encode()

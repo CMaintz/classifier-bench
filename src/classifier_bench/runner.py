@@ -25,6 +25,17 @@ Sink = Callable[[dict[str, Any]], None]
 
 
 @dataclass(frozen=True)
+class Sweep:
+    """The padding sweep: token buckets to wrap cases in, and how many cases per task at each non-zero pad."""
+
+    pads: Sequence[int] = (0,)
+    cases_per_task: int = 4
+
+
+NO_SWEEP = Sweep()
+
+
+@dataclass(frozen=True)
 class Job:
     task: str
     case: Case
@@ -62,14 +73,12 @@ def scale_subset(tasks: Sequence[Task], per_task: int) -> list[tuple[Task, Case]
     return [(t, c) for t in tasks for c in t.cases[:per_task]]
 
 
-def plan(
-    tasks: Sequence[Task], n: int, repeats: int, seed: int, pads: Sequence[int] = (0,), scale_cases: int = 4
-) -> list[Job]:
+def plan(tasks: Sequence[Task], n: int, repeats: int, seed: int, sweep: Sweep = NO_SWEEP) -> list[Job]:
     """Every case x repeat x classifier at pad 0; a per-task subset at each larger pad."""
     rng = random.Random(seed)
     jobs: list[Job] = []
-    for pad in pads:
-        cases = [(t, c) for t in tasks for c in t.cases] if pad == 0 else scale_subset(tasks, scale_cases)
+    for pad in sweep.pads:
+        cases = [(t, c) for t in tasks for c in t.cases] if pad == 0 else scale_subset(tasks, sweep.cases_per_task)
         for repeat in range(repeats):
             jobs += _pairs(cases, n, repeat, pad, rng)
     return jobs

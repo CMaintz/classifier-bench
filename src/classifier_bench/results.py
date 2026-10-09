@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .analyze import classifier_metrics, grade_all, group
-from .compare import cascade, head_to_head
+from .compare import Side, cascade, head_to_head
 from .corpus import Task, parse_task
 from .session import load_attempts
 
@@ -43,8 +43,8 @@ def _comparisons(
     base = names[0]
     out: dict[str, Any] = {}
     for other in names[1:]:
-        args = (by_clf[base], by_clf[other], grades[base], grades[other])
-        out[f"{base} vs {other}"] = head_to_head(*args, resamples=resamples, seed=seed) | {"cascade": cascade(*args)}
+        a, b = Side(by_clf[base], grades[base]), Side(by_clf[other], grades[other])
+        out[f"{base} vs {other}"] = head_to_head(a, b, resamples, seed) | {"cascade": cascade(a, b)}
     return out
 
 

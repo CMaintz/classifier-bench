@@ -19,7 +19,7 @@ from .importer import run_import
 from .registry import load_registry
 from .report import ms, num, pct, render, table
 from .results import build_metrics
-from .runner import Context, Job, execute, plan, warmups
+from .runner import Context, Job, Sweep, execute, plan, warmups
 from .selection import DOMAINS, domain_of
 from .selection import select as select_cases
 from .session import RunDir, build_classifiers, estimate, protocol_document
@@ -103,7 +103,7 @@ def _setup(
     domains = args.domain.split(",") if args.domain else []
     tasks = select_cases(every, domains, args.sample, args.max_cases, args.seed)
     classifiers = build_classifiers(args.classifier, args.dry_run or not keys, args.effort)
-    jobs = plan(tasks, len(classifiers), args.repeats, args.seed, _ints(args.pad), args.scale_cases)
+    jobs = plan(tasks, len(classifiers), args.repeats, args.seed, Sweep(_ints(args.pad), args.scale_cases))
     warm = warmups(tasks, len(classifiers), args.warmup)
     ctx = Context({t.name: t for t in tasks}, classifiers, urllib_transport, load_registry(), timeout_s)
     if args.dry_run:

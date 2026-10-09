@@ -16,8 +16,8 @@
 # Gitignore `.venv/` (the project venv, a build artifact); foundry-init seeds `.foundry/`.
 
 [tools]
-python = "3.12"
-ruff = "0.14.0" # lint + format; standalone binary, no project deps -> clean pin
+python = "3.12.1"
+ruff = "0.14.1" # lint + format; standalone binary, no project deps -> clean pin
 
 [env]
 # Pinned into the project .venv by setup:pytools (see the header note). Bump them

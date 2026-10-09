@@ -1,11 +1,11 @@
 #!/bin/sh
-# foundry-verb-wrap - time a verb, record the outcome, propagate its exit code.
+# foundry-verb-wrap — time a verb, record the outcome, propagate its exit code.
 #
 #   foundry-verb-wrap <verb> -- <command> [args...]
 #
 # Runs <command>, then appends ONE JSON line to the telemetry log describing the
 # run (verb, exit, duration, scope, placement). The command's exit code is always
-# propagated unchanged - telemetry is best-effort and MUST NOT change a verb's
+# propagated unchanged — telemetry is best-effort and MUST NOT change a verb's
 # outcome. This is the single instrumentation point every placement routes through
 # (see designs/loop-telemetry.md); wire it into a mise template's verbs.
 #

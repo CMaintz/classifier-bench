@@ -1,8 +1,16 @@
 # Copy to <repo>/.habit-hooks/config.toml
-# There's no habit-hooks Python sensor, so structural smells come from ruff in
-# `mise run lint` (complexity, long functions, etc. - the gate). habit-hooks contributes
-# only the language-independent `generic` plugin: file-length (below) and, opt-in, jscpd.
-plugins = ["generic"]
+# Structural smells come from the habit-hooks `python` sensor (ruff): high-complexity,
+# too-many-parameters, oversized-function, swallowed-exception, plus unused-import and
+# unused-variable; deptry adds unused-dependency. These are RATCHETED via the snooze
+# baseline, not a hard wall. The `generic` plugin still adds file-length (below) and,
+# opt-in, jscpd. Hard style/correctness/format stays with `ruff` in `mise run lint`.
+# To avoid double-reporting, a consumer's ruff.toml should NOT also select the sensor's
+# smell codes (C901/PLR0913/PLR0915/BLE001); let the sensor own those.
+# deptry reports unused-dependency (DEP002) for declared-but-unimported deps. A repo that
+# declares its dev tools under [project.optional-dependencies] will see those flagged - mark
+# those groups as dev in [tool.deptry] (deptry's optional-dependencies-dev-groups) so the
+# dev toolchain is not reported as unused.
+plugins = ["python", "generic"]
 
 # Tests are not smell-scanned (language-agnostic principle - see README).
 files = ["**/*.py", "!**/tests/**", "!**/test_*.py", "!**/*_test.py"]
@@ -15,8 +23,9 @@ files = ["**/*.py", "!**/tests/**", "!**/test_*.py", "!**/*_test.py"]
 args = ["--max", "300"]
 
 # jscpd (the generic plugin's duplication detector) is a Node CLI. Disabled by default so
-# the habits job stays Node-free (it runs only the pure-Python line-count). To turn on
-# Python duplication detection: install Node + `npm i -g jscpd` in the smells job, copy
+# the habits job stays Node-free (the python sensor's ruff + deptry and the generic
+# line-count are all non-Node). To turn on Python duplication detection: install Node +
+# `npm i -g jscpd` in the smells job, copy
 # ../jscpd.json to <repo>/.jscpd.json (jscpd ignores the `files` list above), delete this
 # block, then re-seed the snooze baseline.
 [sensors.jscpd]

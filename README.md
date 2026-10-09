@@ -80,7 +80,7 @@ The authored labels were checked by LLM-assisted annotators, not independent hum
 
 ```console
 $ mise install      # Python 3.12, ruff, and the pinned mypy/pytest/pip-audit in .venv
-$ mise run gate     # ruff, mypy --strict, pytest (90% coverage floor), pip-audit
+$ mise run gate     # ruff, habit-hooks smells, mypy --strict, pytest (90% coverage floor), pip-audit
 ```
 
 ## License

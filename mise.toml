@@ -1,6 +1,4 @@
 # Foundry verb interface - Python template. See CONTRACT.md.
-# Carries the two fixes from CMaintz/foundry#67 (pytest 9.0.3 pin, mypy scoping) ahead
-# of the next Foundry release; re-sync from mise/python.toml once that ships.
 # Six verbs on ruff (lint + format) + mypy + pytest + pip-audit. Proven on jev-rerank;
 # this is that gate made reusable. Adjust for poetry/uv/pdm as needed.
 #
@@ -30,13 +28,19 @@ PIP_AUDIT_VERSION = "2.9.0"
 # habit-hooks (the structural-smell detector) is a pinned, mise-managed pip tool,
 # provisioned into a per-plugin venv by setup:habit-hooks (postinstall) whose bin goes on
 # PATH below - so the SAME version runs in-loop, pre-push (`gate`) and in CI (mirrors how
-# dotnet.toml wires it). There's no habit-hooks Python sensor, so the plugin is the language-
-# independent `generic` (file-length + opt-in jscpd); complexity and long-function smells
-# come from ruff in `lint`. Core + plugin ship in lockstep, so both pin to this one version.
+# dotnet.toml wires it). The `python` sensor (ruff) owns the structural smells - complexity,
+# too-many-parameters, oversized-function, swallowed-exception - plus unused imports/vars,
+# all ratcheted via the snooze baseline; deptry adds unused-dependency, and the bundled
+# `generic` sensor adds file-length (+ opt-in jscpd). ruff in `lint` keeps style/correctness/
+# format as a hard gate. Core + plugin ship in lockstep, so both pin to this one version.
 # Renovate bumps it (presets/renovate.json); keep it == the reusable workflow's
 # `habit_hooks_version` default (1.5.0).
 HABIT_HOOKS_VERSION = "1.5.0"
-HABIT_HOOKS_PLUGIN = "habit-hooks-generic"
+HABIT_HOOKS_PLUGIN = "habit-hooks-python"
+# deptry (the python sensor's unused-dependency check) is resolved from the project .venv
+# (.venv/bin is first on PATH below), so it is installed by setup:pytools alongside the
+# other pinned project tools. Bump it with the rest.
+DEPTRY_VERSION = "0.25.1"
 # Coverage floor for `test`. Override per repo (a legacy repo can start lower and
 # ratchet up); CI inherits whatever you set here.
 FOUNDRY_COV_MIN = "90"
@@ -79,7 +83,7 @@ FOUNDRY_TELEMETRY = "{{config_root}}/.foundry/telemetry.jsonl"
 postinstall = ["mise run setup:pytools", "mise run setup:habit-hooks"]
 
 [tasks."setup:pytools"]
-description = "Create the project .venv and install the pinned mypy/pytest/pip-audit (+ the project's own deps)"
+description = "Create the project .venv and install the pinned mypy/pytest/pip-audit/deptry (+ the project's own deps)"
 # dir = config_root so the postinstall hook writes the .venv next to THIS mise.toml even
 # when `mise install` runs from the repo root (a monorepo package, where config_root is
 # the package dir). Without it, bare relative paths would seed .venv in the wrong place.
@@ -89,13 +93,13 @@ dir = "{{config_root}}"
 run = '''
 set -eu
 stamp=".venv/.foundry-pytools"
-want="$MYPY_VERSION $PYTEST_VERSION $PYTEST_COV_VERSION $PIP_AUDIT_VERSION"
+want="$MYPY_VERSION $PYTEST_VERSION $PYTEST_COV_VERSION $PIP_AUDIT_VERSION $DEPTRY_VERSION"
 if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$want" ]; then exit 0; fi
 python -m venv .venv
 py=".venv/bin/python"; [ -x "$py" ] || py=".venv/Scripts/python.exe"  # Scripts on Windows
 "$py" -m pip install --disable-pip-version-check --quiet --upgrade pip
 "$py" -m pip install --disable-pip-version-check --quiet \
-  "mypy==$MYPY_VERSION" "pytest==$PYTEST_VERSION" "pytest-cov==$PYTEST_COV_VERSION" "pip-audit==$PIP_AUDIT_VERSION"
+  "mypy==$MYPY_VERSION" "pytest==$PYTEST_VERSION" "pytest-cov==$PYTEST_COV_VERSION" "pip-audit==$PIP_AUDIT_VERSION" "deptry==$DEPTRY_VERSION"
 # Make the project importable so pytest/mypy see its code and deps. Editable if it is a
 # package; its declared runtime deps otherwise. Harmless no-op when there is neither.
 if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
@@ -106,10 +110,12 @@ fi
 echo "$want" > "$stamp"
 '''
 
-# Provision the pinned habit-hooks (core + generic plugin, same version) into a per-plugin
-# venv. Auxiliary (tier c) - not a contract verb, run via postinstall on `mise install`.
+# Provision the pinned habit-hooks (core + python plugin, same version) into a per-plugin
+# venv. The python sensor shells out to ruff ([tools]) and deptry (.venv) at scan time, and
+# the bundled generic sensor adds file-length; all three resolve via the _.path order above.
+# Auxiliary (tier c) - not a contract verb, run via postinstall on `mise install`.
 [tasks."setup:habit-hooks"]
-description = "Install the pinned habit-hooks + generic plugin into a venv (file-length/jscpd smells)"
+description = "Install the pinned habit-hooks + python plugin into a venv (ruff smells + deptry; generic file-length)"
 run = '''
 set -eu
 dst="$HOME/.local/opt/$HABIT_HOOKS_PLUGIN-$HABIT_HOOKS_VERSION"
@@ -127,8 +133,9 @@ bin="$dst/bin"; [ -d "$bin" ] || bin="$dst/Scripts"
 "$bin/pip" install --disable-pip-version-check "habit-hooks==$HABIT_HOOKS_VERSION" "$HABIT_HOOKS_PLUGIN==$HABIT_HOOKS_VERSION"
 '''
 
-# Structural smells (file-length / jscpd via habit-hooks), folded into `lint` below (tier
-# b). Same check CI's habits job runs, so `gate` is the same oracle locally and in CI.
+# Structural smells (ruff-based python sensor + deptry + generic file-length, via habit-hooks),
+# folded into `lint` below (tier b). Same check CI's habits job runs, so `gate` is the same
+# oracle locally and in CI.
 # Degrades gracefully (skip) with no .habit-hooks config/snooze or an unresolvable base;
 # FAILS only when a config + baseline exist but habit-hooks isn't on PATH (run `mise install`).
 [tasks.smells]
@@ -153,11 +160,14 @@ run = ["ruff check --fix .", "ruff format ."]
 
 [tasks.lint]
 description = "Lint + format check (ruff) + structural smells (habit-hooks)"
-# ruff subsumes flake8/isort/pyupgrade/etc.; enable the rule sets you want in ruff.toml
-# (incl. mccabe `C90` for complexity). ruff is the Python-specific smell detector
-# (complexity, long functions); habit-hooks via `mise run smells` adds the language-
-# independent file-length (+ opt-in jscpd) signal - the same smell scan CI runs - so `gate`
-# is the same oracle locally and in CI. ruff ignores .venv by default.
+# ruff subsumes flake8/isort/pyupgrade/etc. as a hard style/correctness/format gate; enable
+# the rule sets you want in ruff.toml. The structural smells (complexity, too-many-parameters,
+# oversized-function, swallowed-exception) and unused imports/vars are owned by the habit-hooks
+# python sensor (ruff), run via `mise run smells` and RATCHETED against the snooze baseline;
+# deptry adds unused-dependency and the generic sensor adds file-length (+ opt-in jscpd) - the
+# same smell scan CI runs, so `gate` is the same oracle locally and in CI. To avoid double-
+# reporting, do NOT also select the sensor's smell codes (C901/PLR0913/PLR0915/BLE001) here.
+# ruff ignores .venv by default.
 run = ["ruff check .", "ruff format --check .", "mise run smells"]
 
 [tasks.typecheck]

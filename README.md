@@ -9,7 +9,7 @@ It ships its own frozen, labeled corpus (2,321 cases across 31 tasks, counting t
 ## Quick start
 
 ```console
-$ pip install git+https://github.com/CMaintz/classifier-bench
+$ pip install classifier-bench
 $ classifier-bench tasks                                        # the corpus: tasks, domains, cases
 $ classifier-bench estimate -c jev -c haiku                     # registry-priced cost, no calls
 $ classifier-bench run -c jev -c haiku --dry-run --out /tmp/x   # synthetic providers, no keys, no cost
@@ -29,7 +29,7 @@ Two corpora, never pooled: `--suite authored` (default), `public`, or `all`. The
 | Public, committed | 10 | 1,261 | 1,261 |
 | Public, download-only | 5 | 626 | 626 |
 
-- **Authored:** tier routing, department routing (a phone switchboard with a fixed department list and a priority rule), support triage (team, urgency and sentiment in one call), banking intent, toxicity, PII, tool-call risk, issue triage, duplicate issues, citation support, review sentiment (5 levels), language ID (Danish vs Norwegian vs Swedish), Danish support, code-review severity, prompt injection and spam. Short, long, follow-up, tool-context, boundary and non-English cases. The criteria are written as decision rules so every label follows from the rules, and a blind second annotator agreed on 383 of 386 cases; the contested ones are excluded from the "agreed ground truth only" match rate. See [`tasks/ANNOTATION.md`](src/classifier_bench/tasks/ANNOTATION.md).
+- **Authored:** tier routing, department routing (a phone switchboard with a fixed department list and a priority rule), support triage (team, urgency and sentiment in one call), banking intent, toxicity, PII, tool-call risk, issue triage, duplicate issues, citation support, review sentiment (5 levels), language ID (Danish vs Norwegian vs Swedish), Danish support, code-review severity, prompt injection and spam. Short, long, follow-up, tool-context, boundary and non-English cases. The criteria are written as decision rules so every label follows from the rules, and a blind second annotator agreed on 431 of 434 cases; the contested ones are excluded from the "agreed ground truth only" match rate. See [`tasks/ANNOTATION.md`](https://github.com/CMaintz/classifier-bench/blob/main/src/classifier_bench/tasks/ANNOTATION.md).
 - **Public, committed:** seeded, label-stratified samples of BANKING77, CLINC150 (bank scope), MASSIVE (Danish scenarios, and language ID where the gold is the locale), Civil Comments (clear rater consensus only), DKHate, SMS Spam, jailbreak-classification, PAWS and GoEmotions (Ekman groups). Each is asked with its own original annotation definition, so the published gold answers the question being asked. Every case records dataset, revision, split and row.
 - **Public, download-only:** VitaminC, SST-5, NLBSE'24 issues, iSarcasmEval and deepset prompt-injections. Their licenses or terms don't allow redistribution here, so `classifier-bench import` fetches them through the Hugging Face rows API into `~/.cache/classifier-bench`; add them to a run with `--corpus-dir`.
 
@@ -85,4 +85,4 @@ $ mise run gate     # ruff, mypy --strict, pytest (90% coverage floor), pip-audi
 
 ## License
 
-Code and the authored corpus: [MIT](LICENSE). The committed public samples stay under their own licenses (CC0, CC-BY, Apache and similar), listed in [`tasks/public/LICENSES.md`](src/classifier_bench/tasks/public/LICENSES.md).
+Code and the authored corpus: [MIT](https://github.com/CMaintz/classifier-bench/blob/main/LICENSE). The committed public samples stay under their own licenses (CC0, CC-BY, Apache and similar), listed in [`tasks/public/LICENSES.md`](https://github.com/CMaintz/classifier-bench/blob/main/src/classifier_bench/tasks/public/LICENSES.md).

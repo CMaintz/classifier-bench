@@ -11,7 +11,7 @@ import pytest
 from classifier_bench import classifiers as cl
 from classifier_bench.corpus import load_tasks, pad_state, parse_task
 from classifier_bench.registry import cost, load_registry, price, resolve
-from classifier_bench.runner import Context, attempt, plan, warmups
+from classifier_bench.runner import Context, Sweep, attempt, plan, warmups
 from classifier_bench.scoring import brier, grade_attempt
 from classifier_bench.stats import cluster_bootstrap, cohen_kappa, mcnemar_exact, quantile, summarize
 from classifier_bench.transport import Response, TransportTimeout
@@ -56,7 +56,7 @@ def test_plan_rotates_who_goes_first() -> None:
     assert len(jobs) == n_cases * 2 * 2
     firsts = [j.classifier for j in jobs if j.position == 0]
     assert set(firsts) == {0, 1}
-    scaled = plan(TASKS[:2], 2, 1, seed=1, pads=(0, 500), scale_cases=2)
+    scaled = plan(TASKS[:2], 2, 1, seed=1, sweep=Sweep((0, 500), 2))
     assert sum(j.pad_tokens == 500 for j in scaled) == 2 * 2 * 2
     assert all(j.warmup for j in warmups(TASKS, 2, 3)) and len(warmups(TASKS, 2, 3)) == 6
 

@@ -14,6 +14,25 @@ CASCADE_GRID = (0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 0.99)
 
 
 @dataclass(frozen=True)
+class Side:
+    """One classifier's attempts and graded answers over the same run."""
+
+    attempts: Sequence[Attempt]
+    grades: Sequence[Grade]
+
+
+@dataclass(frozen=True)
+class _Calls:
+    """Calls both classifiers answered, keyed by (task, case, repeat), with their grades and attempts."""
+
+    keys: Sequence[Any]
+    grades_a: dict[Any, Any]
+    grades_b: dict[Any, Any]
+    att_a: dict[Any, Any]
+    att_b: dict[Any, Any]
+
+
+@dataclass(frozen=True)
 class Cluster:
     """Everything one authored case contributes, with all its repeats kept together."""
 
@@ -89,13 +108,10 @@ STATS = {
 }
 
 
-def head_to_head(
-    atts_a: Sequence[Attempt], atts_b: Sequence[Attempt], grades_a: Sequence[Grade], grades_b: Sequence[Grade],
-    resamples: int, seed: int,
-) -> dict[str, Any]:  # fmt: skip
+def head_to_head(a: Side, b: Side, resamples: int, seed: int) -> dict[str, Any]:
     """B relative to A: a ratio above 1 means A is faster; savings are A's cost below B's."""
-    pairs = _paired(grades_a, grades_b)
-    cs = clusters(atts_a, atts_b, pairs)
+    pairs = _paired(a.grades, b.grades)
+    cs = clusters(a.attempts, b.attempts, pairs)
     estimates = {
         name: {"estimate": fn(cs), "ci95": cluster_bootstrap(cs, fn, resamples, seed)} for name, fn in STATS.items()
     }
@@ -119,26 +135,27 @@ def _call_confidence(grades: Sequence[Grade]) -> float:
     return min((g.scored.confidence if g.scored is not None else 0.0) for g in grades)
 
 
-def cascade(
-    atts_a: Sequence[Attempt], atts_b: Sequence[Attempt], grades_a: Sequence[Grade], grades_b: Sequence[Grade]
-) -> list[dict[str, Any]]:
+def cascade(a: Side, b: Side) -> list[dict[str, Any]]:
     """Run A first; escalate the call to B when A's confidence is below t. One row per t."""
-    calls_a = group(grades_a, lambda g: (g.task, g.case, g.repeat))
-    calls_b = group(grades_b, lambda g: (g.task, g.case, g.repeat))
-    att_a = {(a["task"], a["case"], a["repeat"]): a for a in atts_a}
-    att_b = {(b["task"], b["case"], b["repeat"]): b for b in atts_b}
-    keys = [k for k in calls_a if k in calls_b and k in att_a and k in att_b]
-    return [_cascade_row(t, keys, calls_a, calls_b, att_a, att_b) for t in CASCADE_GRID]
+    calls = _calls(a, b)
+    return [_cascade_row(t, calls) for t in CASCADE_GRID]
 
 
-def _cascade_row(
-    t: float, keys: Sequence[Any], calls_a: dict[Any, Any], calls_b: dict[Any, Any], att_a: dict[Any, Any],
-    att_b: dict[Any, Any],
-) -> dict[str, Any]:  # fmt: skip
-    escalated = {k for k in keys if _call_confidence(calls_a[k]) < t}
-    answers = [g for k in keys for g in (calls_b[k] if k in escalated else calls_a[k])]
-    latency = [att_a[k]["elapsed_ms"] + (att_b[k]["elapsed_ms"] if k in escalated else 0.0) for k in keys]
-    spent = sum(att_a[k]["cost_usd"] + (att_b[k]["cost_usd"] if k in escalated else 0.0) for k in keys)
+def _calls(a: Side, b: Side) -> _Calls:
+    grades_a = group(a.grades, lambda g: (g.task, g.case, g.repeat))
+    grades_b = group(b.grades, lambda g: (g.task, g.case, g.repeat))
+    att_a = {(x["task"], x["case"], x["repeat"]): x for x in a.attempts}
+    att_b = {(x["task"], x["case"], x["repeat"]): x for x in b.attempts}
+    keys = [k for k in grades_a if k in grades_b and k in att_a and k in att_b]
+    return _Calls(keys, grades_a, grades_b, att_a, att_b)
+
+
+def _cascade_row(t: float, c: _Calls) -> dict[str, Any]:
+    keys = c.keys
+    escalated = {k for k in keys if _call_confidence(c.grades_a[k]) < t}
+    answers = [g for k in keys for g in (c.grades_b[k] if k in escalated else c.grades_a[k])]
+    latency = [c.att_a[k]["elapsed_ms"] + (c.att_b[k]["elapsed_ms"] if k in escalated else 0.0) for k in keys]
+    spent = sum(c.att_a[k]["cost_usd"] + (c.att_b[k]["cost_usd"] if k in escalated else 0.0) for k in keys)
     lat = summarize(latency)
     return {
         "threshold": t,

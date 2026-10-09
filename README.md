@@ -2,7 +2,7 @@
 
 A head-to-head benchmark for fast typed classifiers against LLMs. On the same requests, how fast, how cheap, how well calibrated and how close to the expected labels is a purpose-built classification API compared with an LLM such as Claude Haiku or Sonnet asked for schema-constrained output?
 
-It ships its own frozen, labeled corpus (2,273 cases across 30 tasks, counting the optional downloads), measures latency tails, reliability, cost and calibration, and writes a report with confidence intervals. Zero runtime dependencies: the Python standard library only.
+It ships its own frozen, labeled corpus (2,321 cases across 31 tasks, counting the optional downloads), measures latency tails, reliability, cost and calibration, and writes a report with confidence intervals. Zero runtime dependencies: the Python standard library only.
 
 **Classifiers today:** TypeSafe [Jev](https://docs.typesafe.ai) and any Claude model. **Planned:** OpenAI Decisions and Cloudflare Clef, so all three typed-classification APIs can be compared with each other and with Claude in one harness.
 
@@ -25,11 +25,11 @@ Two corpora, never pooled: `--suite authored` (default), `public`, or `all`. The
 
 | Suite | Tasks | Cases | Decisions |
 |---|---|---|---|
-| Authored | 15 | 386 | 491 |
+| Authored | 16 | 434 | 539 |
 | Public, committed | 10 | 1,261 | 1,261 |
 | Public, download-only | 5 | 626 | 626 |
 
-- **Authored:** tier routing, support triage (team, urgency and sentiment in one call), banking intent, toxicity, PII, tool-call risk, issue triage, duplicate issues, citation support, review sentiment (5 levels), language ID (Danish vs Norwegian vs Swedish), Danish support, code-review severity, prompt injection and spam. Short, long, follow-up, tool-context, boundary and non-English cases. The criteria are written as decision rules so every label follows from the rules, and a blind second annotator agreed on 383 of 386 cases; the contested ones are excluded from the "agreed ground truth only" match rate. See [`tasks/ANNOTATION.md`](src/classifier_bench/tasks/ANNOTATION.md).
+- **Authored:** tier routing, department routing (a phone switchboard with a fixed department list and a priority rule), support triage (team, urgency and sentiment in one call), banking intent, toxicity, PII, tool-call risk, issue triage, duplicate issues, citation support, review sentiment (5 levels), language ID (Danish vs Norwegian vs Swedish), Danish support, code-review severity, prompt injection and spam. Short, long, follow-up, tool-context, boundary and non-English cases. The criteria are written as decision rules so every label follows from the rules, and a blind second annotator agreed on 383 of 386 cases; the contested ones are excluded from the "agreed ground truth only" match rate. See [`tasks/ANNOTATION.md`](src/classifier_bench/tasks/ANNOTATION.md).
 - **Public, committed:** seeded, label-stratified samples of BANKING77, CLINC150 (bank scope), MASSIVE (Danish scenarios, and language ID where the gold is the locale), Civil Comments (clear rater consensus only), DKHate, SMS Spam, jailbreak-classification, PAWS and GoEmotions (Ekman groups). Each is asked with its own original annotation definition, so the published gold answers the question being asked. Every case records dataset, revision, split and row.
 - **Public, download-only:** VitaminC, SST-5, NLBSE'24 issues, iSarcasmEval and deepset prompt-injections. Their licenses or terms don't allow redistribution here, so `classifier-bench import` fetches them through the Hugging Face rows API into `~/.cache/classifier-bench`; add them to a run with `--corpus-dir`.
 
@@ -45,7 +45,7 @@ Narrow a run before it costs anything:
 - `--max-cases 20`: a per-task cap
 - `--repeats` (default 3)
 
-`run` prints the registry-priced estimate first and refuses when it exceeds `--max-cost` (default $5). The selection is recorded in `protocol.json`. Rough figures for one pass over all 2,273 cases: Jev $0.02, Haiku $2.24, Sonnet $4.55. Small samples give wide intervals: use them for quick checks and the full suite for numbers you quote.
+`run` prints the registry-priced estimate first and refuses when it exceeds `--max-cost` (default $5). The selection is recorded in `protocol.json`. Rough figures for one pass over all 2,321 cases: Jev $0.02, Haiku $2.30, Sonnet $4.65. Small samples give wide intervals: use them for quick checks and the full suite for numbers you quote.
 
 ## The protocol
 

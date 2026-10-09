@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `department_routing`: 48 authored switchboard-routing cases (38 English, 10 Danish) over eight departments, with a priority rule for callers who ask for more than one thing, keyword traps and boundary cases.
+
 ## [0.1.0] - 2026-10-09
 
 ### Added

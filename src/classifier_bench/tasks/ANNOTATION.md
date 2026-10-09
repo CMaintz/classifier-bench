@@ -16,3 +16,8 @@ excludes them from the "agreed ground truth only" match rate.
 
 All annotators were LLM-assisted, not independent human experts. Agreement shows the labels follow from
 the written rules; it does not show the rules are the only reasonable ones.
+
+`department_routing` (48 cases, added after the move to classifier-bench) went through the same blind
+check: the second annotator saw only the instructions, criteria and states, and agreed on all 48. The
+cases it found closest to the rules' edges were DR-30 (a refund after leaving: billing) and DR-36
+(ending a contract because of a move: moving); both labels follow from the written criteria.

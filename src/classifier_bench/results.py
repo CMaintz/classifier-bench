@@ -12,17 +12,20 @@ from .corpus import Task, parse_task
 from .session import load_attempts
 
 DISCLOSURES = [
-    "Expected labels were authored with the cases by one author (an LLM-assisted pass), "
-    "without independent review or blind adjudication.",
+    "Authored labels were written by one author and checked by a blind second annotator, both LLM-assisted, "
+    "not independent human experts; cases still disputed are excluded from the agreed-ground-truth match rate.",
     "Match rate measures agreement with those frozen labels on this corpus, "
     "not general classification accuracy or downstream answer quality.",
-    "Claude probabilities are verbalized (the model states them in JSON); Jev probabilities come from the model. "
-    "Calibration compares them as reported.",
+    "Claude probabilities are verbalized (the model states them in JSON); Jev, Decisions and Clef return them "
+    "from the API. Calibration compares them as reported.",
+    "Jev gets questions with structured parts; Decisions takes plain-text instructions and Clef a plain-text "
+    "score instruction, so score level definitions and yes/no criteria are rendered into the text by one fixed rule.",
     "Repeats of a case are correlated; intervals resample whole cases (clusters), not individual calls.",
     "Timings include the local client, network and provider; client and provider regions are not controlled.",
     "Cost is observed tokens x the frozen registry list prices; invoices, discounts and taxes are not checked.",
     "A timed-out or failed call may still be billed by the provider; cost here counts only usage a response returned.",
-    "Jev and Claude count tokens with different tokenizers: compare registry-priced cost, not raw token counts.",
+    "Each provider counts tokens with its own tokenizer: compare registry-priced cost, not raw token counts. "
+    "Clef's output-token price is not documented and is recorded as 0.",
     "Authored and public-dataset results are reported separately and never pooled. Public test sets are old and "
     "likely in LLM training data, which can favor the LLM there.",
     "For choice questions with more than 12 options, Claude states one confidence instead of a full distribution; "

@@ -22,7 +22,7 @@ from .results import build_metrics
 from .runner import Context, Job, Sweep, execute, plan, warmups
 from .selection import DOMAINS, domain_of
 from .selection import select as select_cases
-from .session import RunDir, build_classifiers, estimate, protocol_document
+from .session import SPEC_HELP, RunDir, build_classifiers, estimate, protocol_document
 from .transport import urllib_transport
 
 Sub: TypeAlias = "argparse._SubParsersAction[argparse.ArgumentParser]"
@@ -35,9 +35,7 @@ def _ints(text: str) -> list[int]:
 
 
 def _add_plan_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument(
-        "-c", "--classifier", action="append", required=True, help="jev[:model] | haiku | sonnet | opus | claude:<id>"
-    )
+    p.add_argument("-c", "--classifier", action="append", required=True, help=SPEC_HELP)
     p.add_argument(
         "--suite", default="authored", choices=("authored", "public", "all"), help="authored, public or both"
     )

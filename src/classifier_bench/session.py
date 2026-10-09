@@ -20,39 +20,67 @@ from .corpus import Task, corpus_hash, pad_state
 from .hashing import stable_hash
 from .registry import cost, price
 from .runner import Context, Job
+from .typed_apis import ClefClassifier, DecisionsClassifier
 
 ALIASES = {"haiku": "claude-haiku-4-5", "sonnet": "claude-sonnet-5-5", "opus": "claude-opus-5-5"}
+DEFAULT_MODELS = {"jev": "jev-latest", "decisions": "gpt-6-luna", "clef": "clef"}
 ATTEMPTS = "attempts.jsonl"
+SPEC_HELP = "jev[:model], decisions[:model], clef, clef-flash, haiku, sonnet, opus or claude:<model>"
 
 
 def parse_spec(spec: str) -> tuple[str, str]:
-    """'jev' | 'jev:jev-1.13.0' | 'haiku' | 'sonnet' | 'claude:<model id>' -> (provider, model)."""
+    """'jev' | 'jev:jev-1.13.0' | 'decisions' | 'clef' | 'clef-flash' | 'haiku' | 'claude:<id>' -> (provider, model)."""
     provider, _, model = spec.partition(":")
-    if provider == "jev":
-        return "jev", model or "jev-latest"
+    if provider in DEFAULT_MODELS:
+        return provider, model or DEFAULT_MODELS[provider]
+    if provider == "clef-flash" and not model:
+        return "clef", "clef-flash"
     if provider in ALIASES and not model:
         return "claude", ALIASES[provider]
     if provider == "claude" and model:
         return "claude", model
-    raise ValueError(f"unknown classifier {spec!r}: use jev[:model], haiku, sonnet, opus or claude:<model>")
+    raise ValueError(f"unknown classifier {spec!r}: use {SPEC_HELP}")
+
+
+def _env(name: str, dry_run: bool, *alternatives: str) -> str:
+    if dry_run:
+        return "dry-run"
+    value = next((os.environ[n] for n in (name, *alternatives) if os.environ.get(n)), "")
+    if not value:
+        raise RuntimeError(f"{name} is not set (or pass --dry-run)")
+    return value
+
+
+def _jev(model: str, dry_run: bool, effort: str | None) -> Classifier:
+    base = (os.environ.get("TYPESAFE_AI_BASE_URL") or "https://api.typesafe.ai/v1").rstrip("/")
+    return JevClassifier(_env("JEV_API_KEY", dry_run), model, base, name="jev" if model == "jev-latest" else model)
+
+
+def _decisions(model: str, dry_run: bool, effort: str | None) -> Classifier:
+    name = "decisions" if model == DEFAULT_MODELS["decisions"] else model
+    return DecisionsClassifier(_env("OPENAI_API_KEY", dry_run), model, name=name)
+
+
+def _clef(model: str, dry_run: bool, effort: str | None) -> Classifier:
+    token = _env("CLOUDFLARE_AUTH_TOKEN", dry_run, "CLOUDFLARE_API_TOKEN")
+    return ClefClassifier(token, _env("CLOUDFLARE_ACCOUNT_ID", dry_run), model)
+
+
+def _claude(model: str, dry_run: bool, effort: str | None) -> Classifier:
+    return ClaudeClassifier(model, {"x-api-key": "dry-run"} if dry_run else auth_headers(), effort)
+
+
+BUILDERS = {"jev": _jev, "decisions": _decisions, "clef": _clef, "claude": _claude}
 
 
 def build_classifiers(specs: Sequence[str], dry_run: bool, effort: str | None = None) -> list[Classifier]:
-    out: list[Classifier] = []
-    for spec in specs:
-        provider, model = parse_spec(spec)
-        if provider == "jev":
-            key = "dry-run" if dry_run else os.environ.get("JEV_API_KEY", "")
-            if not key:
-                raise RuntimeError("JEV_API_KEY is not set (or pass --dry-run)")
-            base = os.environ.get("TYPESAFE_AI_BASE_URL") or "https://api.typesafe.ai/v1"
-            out.append(JevClassifier(key, model, base.rstrip("/"), name="jev" if model == "jev-latest" else model))
-        else:
-            auth = {"x-api-key": "dry-run"} if dry_run else auth_headers()
-            out.append(ClaudeClassifier(model, auth, effort))
+    out = [BUILDERS[provider](model, dry_run, effort) for provider, model in map(parse_spec, specs)]
     if len({c.name for c in out}) != len(out):
         raise ValueError("each classifier may appear once")
     return out
+
+
+PROVIDERS = {JevClassifier: "typesafe", DecisionsClassifier: "openai", ClefClassifier: "cloudflare"}
 
 
 def _describe(clf: Classifier) -> dict[str, Any]:
@@ -65,7 +93,8 @@ def _describe(clf: Classifier) -> dict[str, Any]:
             "endpoint": clf.base_url,
             "settings": settings,
         }
-    return {"name": clf.name, "provider": "typesafe", "model": clf.model, "endpoint": getattr(clf, "base_url", "")}
+    provider = PROVIDERS.get(type(clf), "unknown")
+    return {"name": clf.name, "provider": provider, "model": clf.model, "endpoint": getattr(clf, "base_url", "")}
 
 
 def protocol_document(

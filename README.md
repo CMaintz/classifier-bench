@@ -4,7 +4,7 @@ A head-to-head benchmark for fast typed classifiers against LLMs. On the same re
 
 It ships its own frozen, labeled corpus (2,321 cases across 31 tasks, counting the optional downloads), measures latency tails, reliability, cost and calibration, and writes a report with confidence intervals. Zero runtime dependencies: the Python standard library only.
 
-**Classifiers today:** TypeSafe [Jev](https://docs.typesafe.ai) and any Claude model. **Planned:** OpenAI Decisions and Cloudflare Clef, so all three typed-classification APIs can be compared with each other and with Claude in one harness.
+**Classifiers:** TypeSafe [Jev](https://docs.typesafe.ai), [OpenAI Decisions](https://developers.openai.com/api/docs/guides/decisions), [Cloudflare Clef](https://developers.cloudflare.com/workers-ai/models/clef/) (and Clef Flash), and any Claude model, all in one harness on the same requests.
 
 ## Quick start
 
@@ -17,7 +17,14 @@ $ classifier-bench run -c jev -c haiku --out runs/haiku-1       # needs JEV_API_
 $ classifier-bench analyze runs/haiku-1                         # metrics.json + report.md (offline)
 ```
 
-Classifiers: `jev` (or `jev:<model>` to pin a version), `haiku` (`claude-haiku-4-5`), `sonnet` (`claude-sonnet-5-5`), `opus`, or `claude:<model id>`. The first one listed is the baseline every other one is compared with. Claude also accepts `ANTHROPIC_AUTH_TOKEN` in place of `ANTHROPIC_API_KEY`.
+| Spec | Model | Credentials |
+|---|---|---|
+| `jev`, `jev:<model>` | `jev-latest` | `JEV_API_KEY` (`TYPESAFE_AI_BASE_URL` to override the endpoint) |
+| `decisions`, `decisions:<model>` | `gpt-6-luna` | `OPENAI_API_KEY` |
+| `clef`, `clef-flash` | `@cf/cloudflare/clef`, `@cf/cloudflare/clef-flash` | `CLOUDFLARE_AUTH_TOKEN` (or `CLOUDFLARE_API_TOKEN`) and `CLOUDFLARE_ACCOUNT_ID` |
+| `haiku`, `sonnet`, `opus`, `claude:<model>` | `claude-haiku-4-5`, `claude-sonnet-5-5`, `claude-opus-5-5` | `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) |
+
+The first classifier listed is the baseline every other one is compared with.
 
 ## The corpus
 
@@ -45,11 +52,11 @@ Narrow a run before it costs anything:
 - `--max-cases 20`: a per-task cap
 - `--repeats` (default 3)
 
-`run` prints the registry-priced estimate first and refuses when it exceeds `--max-cost` (default $5). The selection is recorded in `protocol.json`. Rough figures for one pass over all 2,321 cases: Jev $0.02, Haiku $2.30, Sonnet $4.65. Small samples give wide intervals: use them for quick checks and the full suite for numbers you quote.
+`run` prints the registry-priced estimate first and refuses when it exceeds `--max-cost` (default $5). The selection is recorded in `protocol.json`. Rough figures for one pass over all 2,321 cases: Jev $0.02, Clef Flash $0.05, Decisions $0.07, Clef $0.14, Haiku $2.30, Sonnet $4.65. Small samples give wide intervals: use them for quick checks and the full suite for numbers you quote.
 
 ## The protocol
 
-- Every classifier gets the same questions (instructions and criteria). Claude gets them as JSON with a structured-output schema and states a probability for every option; Jev gets its native questions. No prompt is tuned per classifier.
+- Every classifier gets the same questions (instructions and criteria). Jev and Clef get the System One question shape; Decisions gets its predicate/choice/score shape; Claude gets the questions as JSON with a structured-output schema and states a probability for every option. Where an API takes plain-text instructions (Decisions, and Clef for scores), score level definitions and yes/no criteria are rendered into the text by one fixed rule. No prompt is tuned per classifier.
 - One stdlib HTTP stack for all, zero retries, an explicit deadline (`--timeout-ms`, default 10000), no prompt caching, wall-clock timing around the single HTTP call.
 - Each repeat is a seeded shuffle, and the classifier that goes first rotates from case to case. Warmup pairs run first and are excluded.
 - Haiku runs without thinking; Sonnet 5.5 with `thinking: between_tools` and effort `low` (override with `--effort`).

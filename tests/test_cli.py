@@ -95,12 +95,12 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_dry_run_with_every_provider(tmp_path: Path) -> None:
     out = tmp_path / "all"
-    specs = ["-c", "jev", "-c", "decisions", "-c", "clef", "-c", "clef-flash", "-c", "haiku"]
+    specs = ["-c", "jev", "-c", "decisions", "-c", "clef", "-c", "clef-flash", "-c", "microsoft", "-c", "haiku"]
     assert main(["run", *specs, "--dry-run", "--tasks", "support_ticket,review_sentiment", "--repeats", "1",
                  "--out", str(out)]) == 0  # fmt: skip
     assert main(["analyze", str(out), "--resamples", "20"]) == 0
     metrics = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
     clfs = metrics["groups"]["authored"]["classifiers"]
-    assert set(clfs) == {"jev", "decisions", "clef", "clef-flash", "claude-haiku-4-5"}
+    assert set(clfs) == {"jev", "decisions", "clef", "clef-flash", "microsoft-decision", "claude-haiku-4-5"}
     assert all(c["accuracy"]["match_rate"] > 0.5 for c in clfs.values())
     assert "jev vs decisions" in metrics["groups"]["authored"]["comparisons"]

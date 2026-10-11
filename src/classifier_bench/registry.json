@@ -5,7 +5,8 @@
     "jev": "https://docs.typesafe.ai/models.md ($0.042 per million input tokens, output tokens free)",
     "claude": "Anthropic first-party API list prices (claude-api skill model table, cached 2026-09-25)",
     "decisions": "https://developers.openai.com/api/docs/guides/decisions (read 2026-10-09: $0.10 per million input tokens; output and cache not charged)",
-    "clef": "https://developers.cloudflare.com/workers-ai/platform/pricing/ (read 2026-10-09: clef $0.24, clef-flash $0.09 per million input tokens; output pricing not documented, recorded as 0)"
+    "clef": "https://developers.cloudflare.com/workers-ai/platform/pricing/ (read 2026-10-09: clef $0.24, clef-flash $0.09 per million input tokens; output pricing not documented, recorded as 0)",
+    "microsoft": "https://commandline.microsoft.com/microsoft-decision-1-model-foundry/ (read 2026-10-11: $0.042 per million input tokens, output tokens free; the Azure pricing page still shows placeholders)"
   },
   "aliases": {"jev-latest": "jev-1.13.0", "jev-preview": "jev-1.13.0"},
   "models": {
@@ -16,6 +17,7 @@
     "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cache_read": 0.2, "cache_write": 5.0},
     "gpt-6-luna": {"input": 0.10, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0},
     "clef": {"input": 0.24, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0},
-    "clef-flash": {"input": 0.09, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0}
+    "clef-flash": {"input": 0.09, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0},
+    "microsoft-decision-1": {"input": 0.042, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0}
   }
 }

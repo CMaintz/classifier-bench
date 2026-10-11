@@ -20,16 +20,24 @@ from .corpus import Task, corpus_hash, pad_state
 from .hashing import stable_hash
 from .registry import cost, price
 from .runner import Context, Job
-from .typed_apis import ClefClassifier, DecisionsClassifier
+from .typed_apis import ClefClassifier, DecisionsClassifier, MicrosoftDecisionClassifier
 
 ALIASES = {"haiku": "claude-haiku-4-5", "sonnet": "claude-sonnet-5-5", "opus": "claude-opus-5-5"}
-DEFAULT_MODELS = {"jev": "jev-latest", "decisions": "gpt-6-luna", "clef": "clef"}
+DEFAULT_MODELS = {
+    "jev": "jev-latest",
+    "decisions": "gpt-6-luna",
+    "clef": "clef",
+    "microsoft": "Microsoft-Decision-1",
+}
 ATTEMPTS = "attempts.jsonl"
-SPEC_HELP = "jev[:model], decisions[:model], clef, clef-flash, haiku, sonnet, opus or claude:<model>"
+SPEC_HELP = (
+    "jev[:model], decisions[:model], clef, clef-flash, microsoft[:deployment], haiku, sonnet, opus or claude:<model>"
+)
 
 
 def parse_spec(spec: str) -> tuple[str, str]:
-    """'jev' | 'jev:jev-1.13.0' | 'decisions' | 'clef' | 'clef-flash' | 'haiku' | 'claude:<id>' -> (provider, model)."""
+    """'jev' | 'jev:jev-1.13.0' | 'decisions' | 'clef' | 'clef-flash' | 'microsoft:<deployment>' | 'haiku'
+    | 'claude:<id>' -> (provider, model or deployment)."""
     provider, _, model = spec.partition(":")
     if provider in DEFAULT_MODELS:
         return provider, model or DEFAULT_MODELS[provider]
@@ -66,11 +74,20 @@ def _clef(model: str, dry_run: bool, effort: str | None) -> Classifier:
     return ClefClassifier(token, _env("CLOUDFLARE_ACCOUNT_ID", dry_run), model)
 
 
+def _microsoft(deployment: str, dry_run: bool, effort: str | None) -> Classifier:
+    """Foundry takes an api-key, or an Entra ID token as a bearer; the request names the deployment."""
+    endpoint = "https://dry-run.services.ai.azure.com" if dry_run else _env("AZURE_ENDPOINT", dry_run)
+    entra = not dry_run and not os.environ.get("AZURE_API_KEY") and bool(os.environ.get("AZURE_ENTRA_TOKEN"))
+    credential = _env("AZURE_API_KEY", dry_run, "AZURE_ENTRA_TOKEN")
+    name = "microsoft-decision" if deployment == DEFAULT_MODELS["microsoft"] else deployment
+    return MicrosoftDecisionClassifier(credential, endpoint, deployment, entra, name=name)
+
+
 def _claude(model: str, dry_run: bool, effort: str | None) -> Classifier:
     return ClaudeClassifier(model, {"x-api-key": "dry-run"} if dry_run else auth_headers(), effort)
 
 
-BUILDERS = {"jev": _jev, "decisions": _decisions, "clef": _clef, "claude": _claude}
+BUILDERS = {"jev": _jev, "decisions": _decisions, "clef": _clef, "microsoft": _microsoft, "claude": _claude}
 
 
 def build_classifiers(specs: Sequence[str], dry_run: bool, effort: str | None = None) -> list[Classifier]:
@@ -80,7 +97,12 @@ def build_classifiers(specs: Sequence[str], dry_run: bool, effort: str | None = 
     return out
 
 
-PROVIDERS = {JevClassifier: "typesafe", DecisionsClassifier: "openai", ClefClassifier: "cloudflare"}
+PROVIDERS = {
+    JevClassifier: "typesafe",
+    DecisionsClassifier: "openai",
+    ClefClassifier: "cloudflare",
+    MicrosoftDecisionClassifier: "microsoft",
+}
 
 
 def _describe(clf: Classifier) -> dict[str, Any]:

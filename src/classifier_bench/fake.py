@@ -32,7 +32,14 @@ JEV_PROFILE = Profile(median_ms=125.0, sigma=0.25, accuracy=0.9)
 CLAUDE_PROFILE = Profile(median_ms=690.0, sigma=0.2, accuracy=0.8)
 DECISIONS_PROFILE = Profile(median_ms=180.0, sigma=0.25, accuracy=0.87)
 CLEF_PROFILE = Profile(median_ms=210.0, sigma=0.3, accuracy=0.85)
-PROFILES = {"jev": JEV_PROFILE, "claude": CLAUDE_PROFILE, "decisions": DECISIONS_PROFILE, "clef": CLEF_PROFILE}
+MICROSOFT_PROFILE = Profile(median_ms=160.0, sigma=0.25, accuracy=0.86)
+PROFILES = {
+    "jev": JEV_PROFILE,
+    "claude": CLAUDE_PROFILE,
+    "decisions": DECISIONS_PROFILE,
+    "clef": CLEF_PROFILE,
+    "microsoft": MICROSOFT_PROFILE,
+}
 
 
 def kind_of(request: Request) -> str:
@@ -41,6 +48,8 @@ def kind_of(request: Request) -> str:
         return "claude"
     if request.url.endswith("/decisions"):
         return "decisions"
+    if request.url.endswith("/providers/microsoft/v1/systemone"):
+        return "microsoft"
     return "clef" if "/ai/run/" in request.url else "jev"
 
 
@@ -85,6 +94,9 @@ class FakeTransport:
         usage = {"input_tokens": len(json.dumps(request.body)) // 4, "output_tokens": 8 * len(raw)}
         if kind == "jev":
             return json.dumps({"model": "jev-1.13.0", "answers": _jev_shape(raw, questions), "usage": usage}).encode()
+        if kind == "microsoft":
+            shaped = _jev_shape(raw, questions)
+            return json.dumps({"model": "microsoft-decision-1", "answers": shaped, "usage": usage}).encode()
         if kind == "clef":
             result = {"model": request.body["model"], "answers": _jev_shape(raw, questions), "usage": usage}
             return json.dumps({"result": result, "success": True, "errors": [], "messages": []}).encode()

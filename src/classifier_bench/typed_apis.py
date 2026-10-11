@@ -1,4 +1,5 @@
-"""Two more typed-classification APIs: OpenAI Decisions and Cloudflare Clef, as request builders and parsers.
+"""More typed-classification APIs: OpenAI Decisions, Cloudflare Clef and Microsoft-Decision-1, as request builders
+and parsers.
 
 Both get the same questions as Jev. Where an API takes plain-text instructions, the structured parts
 (Score level definitions, Noul yes/no criteria) are rendered into the text by one deterministic rule,
@@ -98,8 +99,8 @@ class DecisionsClassifier:
         return Parsed({k: v for k, v in out.items() if v is not None}, dict(body.get("usage") or {}), body.get("model"))
 
 
-def clef_question(question: dict[str, Any]) -> dict[str, Any]:
-    """Clef follows Jev's question shape; Score level definitions go into the instruction text."""
+def system_one_question(question: dict[str, Any]) -> dict[str, Any]:
+    """Clef and Microsoft-Decision-1 follow Jev's question shape; Score level definitions go into the text."""
     if question["type"] == "score":
         return {**question, "instructions": level_text(question)}
     return question
@@ -117,7 +118,8 @@ class ClefClassifier:
         self.name = self.name or self.model
 
     def request(self, state: Any, questions: dict[str, Any]) -> Request:
-        body = {"model": self.model, "state": state, "questions": {k: clef_question(q) for k, q in questions.items()}}
+        rendered = {k: system_one_question(q) for k, q in questions.items()}
+        body = {"model": self.model, "state": state, "questions": rendered}
         headers = {"Authorization": f"Bearer {self.api_token}", "Content-Type": "application/json"}
         return Request(f"{self.base_url}/accounts/{self.account_id}/ai/run/@cf/cloudflare/{self.model}", headers, body)
 
@@ -128,3 +130,52 @@ class ClefClassifier:
         if not isinstance(answers, dict):
             raise UnparseableError("no answers map")
         return Parsed(answers, dict(inner.get("usage") or {}), inner.get("model") or self.model)
+
+
+def _fits(question: dict[str, Any], answer: Any) -> bool:
+    """A System One answer: its question's type, a field named after it, and a probability map for choice/score."""
+    if not isinstance(answer, dict) or answer.get("type") != question["type"] or question["type"] not in answer:
+        return False
+    return question["type"] == "noul" or isinstance(answer.get("probabilities"), dict)
+
+
+def _system_one_answers(answers: dict[str, Any], questions: dict[str, Any]) -> dict[str, Any]:
+    """Refuse the whole call if any asked question's answer has another shape: a parser gap must not pass as
+    provider fallbacks. The response fields are not documented yet; relax this after a live probe."""
+    asked = {qid: a for qid, a in answers.items() if qid in questions}
+    misfits = [qid for qid, a in asked.items() if not _fits(questions[qid], a)]
+    if misfits:
+        raise UnparseableError(f"answers not in the expected shape: {json.dumps({q: asked[q] for q in misfits})[:200]}")
+    return asked
+
+
+@dataclass
+class MicrosoftDecisionClassifier:
+    """Microsoft-Decision-1 on a Foundry deployment. `model` is the priced model; the request names the deployment."""
+
+    credential: str
+    endpoint: str
+    deployment: str = "Microsoft-Decision-1"
+    entra: bool = False
+    model: str = "microsoft-decision-1"
+    name: str = "microsoft-decision"
+
+    @property
+    def base_url(self) -> str:
+        # The docs' samples send no api-version query parameter; suspect it first if a live call 400s or 404s.
+        return f"{self.endpoint.rstrip('/')}/providers/microsoft/v1"
+
+    def request(self, state: Any, questions: dict[str, Any]) -> Request:
+        auth = {"Authorization": f"Bearer {self.credential}"} if self.entra else {"api-key": self.credential}
+        body = {
+            "model": self.deployment,
+            "state": state,
+            "questions": {k: system_one_question(q) for k, q in questions.items()},
+        }
+        return Request(f"{self.base_url}/systemone", {**auth, "Content-Type": "application/json"}, body)
+
+    def parse(self, body: dict[str, Any], questions: dict[str, Any]) -> Parsed:
+        answers = body.get("answers")
+        if not isinstance(answers, dict):
+            raise UnparseableError("no answers map")
+        return Parsed(_system_one_answers(answers, questions), dict(body.get("usage") or {}), body.get("model"))

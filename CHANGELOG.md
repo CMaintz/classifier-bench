@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Microsoft-Decision-1 (`microsoft`, `microsoft:<deployment>`) on Microsoft Foundry, with an api-key or Entra ID token, a registry price from the 2026-10-09 launch post and a dry-run fake. Microsoft has not documented the response's answer fields yet, so the parser expects Jev's System One shape and fails a call loudly when no answer fits.
+
 ## [0.1.0] - 2026-10-09
 
 ### Added

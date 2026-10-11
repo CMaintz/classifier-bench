@@ -1,4 +1,4 @@
-"""OpenAI Decisions and Cloudflare Clef: wire shapes, answer reshaping, spec parsing and credentials."""
+"""OpenAI Decisions, Cloudflare Clef and Microsoft-Decision-1: wire shapes, answer parsing, specs and credentials."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from classifier_bench.corpus import load_corpus
 from classifier_bench.typed_apis import (
     ClefClassifier,
     DecisionsClassifier,
+    MicrosoftDecisionClassifier,
     decisions_question,
     level_text,
     noul_text,
@@ -109,3 +110,50 @@ def test_specs_and_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     built = session.build_classifiers(["decisions", "clef", "clef-flash"], dry_run=False)
     assert [c.name for c in built] == ["decisions", "clef", "clef-flash"]
     assert {session._describe(c)["provider"] for c in built} == {"openai", "cloudflare"}
+
+
+def test_microsoft_request_names_the_deployment() -> None:
+    clf = MicrosoftDecisionClassifier("k", "https://res.services.ai.azure.com/", "my-deploy")
+    req = clf.request({"message": "x"}, QUESTIONS)
+    assert req.url == "https://res.services.ai.azure.com/providers/microsoft/v1/systemone"
+    assert req.headers["api-key"] == "k" and "Authorization" not in req.headers
+    assert req.body["model"] == "my-deploy" and req.body["state"] == {"message": "x"}
+    assert req.body["questions"]["urgent"] == QUESTIONS["urgent"]
+    assert isinstance(req.body["questions"]["sentiment"]["instructions"], str)
+    entra = MicrosoftDecisionClassifier("tok", "https://res", entra=True).request("x", QUESTIONS)
+    assert entra.headers["Authorization"] == "Bearer tok" and "api-key" not in entra.headers
+
+
+def test_microsoft_parse_refuses_any_answer_in_another_shape() -> None:
+    clf = MicrosoftDecisionClassifier("k", "https://res")
+    team = {"type": "choice", "choice": "billing", "probabilities": {"billing": 0.9}, "confidence": 0.9}
+    answers = {"urgent": {"type": "noul", "noul": 0.2}, "team": team, "extra": {"type": "noul", "noul": 0.5}}
+    parsed = clf.parse({"answers": answers, "model": "microsoft-decision-1", "usage": {"input_tokens": 7}}, QUESTIONS)
+    assert parsed.answers == {"urgent": answers["urgent"], "team": team}
+    assert parsed.model == "microsoft-decision-1" and parsed.usage == {"input_tokens": 7}
+    as_list = {**team, "probabilities": [{"value": "billing", "probability": 0.9}]}
+    for bad in ({"type": "noul", "probability": 0.2}, as_list):
+        qid = "urgent" if bad["type"] == "noul" else "team"
+        with pytest.raises(ValueError, match="expected shape"):
+            clf.parse({"answers": {**answers, qid: bad}}, QUESTIONS)
+    with pytest.raises(ValueError, match="no answers map"):
+        clf.parse({"answers": []}, QUESTIONS)
+
+
+def test_microsoft_spec_and_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert session.parse_spec("microsoft") == ("microsoft", "Microsoft-Decision-1")
+    assert session.parse_spec("microsoft:md1-eu") == ("microsoft", "md1-eu")
+    for name in ("AZURE_ENDPOINT", "AZURE_API_KEY", "AZURE_ENTRA_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+    with pytest.raises(RuntimeError, match="AZURE_ENDPOINT"):
+        session.build_classifiers(["microsoft"], dry_run=False)
+    monkeypatch.setenv("AZURE_ENDPOINT", "https://res")
+    with pytest.raises(RuntimeError, match="AZURE_API_KEY"):
+        session.build_classifiers(["microsoft"], dry_run=False)
+    monkeypatch.setenv("AZURE_ENTRA_TOKEN", "tok")
+    (entra,) = session.build_classifiers(["microsoft:md1-eu"], dry_run=False)
+    assert isinstance(entra, MicrosoftDecisionClassifier) and entra.entra and entra.name == "md1-eu"
+    monkeypatch.setenv("AZURE_API_KEY", "key")
+    (keyed,) = session.build_classifiers(["microsoft"], dry_run=False)
+    assert isinstance(keyed, MicrosoftDecisionClassifier) and not keyed.entra and keyed.credential == "key"
+    assert session._describe(keyed)["provider"] == "microsoft" and keyed.name == "microsoft-decision"

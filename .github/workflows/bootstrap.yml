@@ -5,7 +5,7 @@ on:
     - cron: '0 6 * * *'   # daily auto-prune - baseline shrinks on its own, one PR/day max
 jobs:
   bootstrap:
-    uses: CMaintz/foundry/.github/workflows/bootstrap.yml@664443a5d900c46353343c56ca8404954a0f8d63 # v2.13.0
+    uses: CMaintz/foundry/.github/workflows/bootstrap.yml@e71482dfb5914417d9675f1be1c6dd34699d0922 # v2.14.0
     with:
       working_directory: "."
       habit_hooks_plugin: "habit-hooks-generic"

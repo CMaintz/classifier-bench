@@ -5,5 +5,5 @@ concurrency:
   cancel-in-progress: true
 jobs:
   security:
-    uses: CMaintz/foundry/.github/workflows/security.yml@0b0275720481eb4c064562dc65b85d292204398a   # v2.11.0   # facade: secret scan + ruleset-guard + SAST
+    uses: CMaintz/foundry/.github/workflows/security.yml@a7ce66217276e6a279be2d3861fa1da7c40cfa76   # v2.11.1   # facade: secret scan + ruleset-guard + SAST
     permissions: { contents: read, pull-requests: read }   # the secret scan lists the PR's commits

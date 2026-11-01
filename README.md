@@ -9,7 +9,9 @@ It ships its own frozen, labeled corpus (2,321 cases across 31 tasks, counting t
 ## Quick start
 
 ```console
-$ pip install classifier-bench
+$ git clone https://github.com/CMaintz/classifier-bench
+$ cd classifier-bench
+$ pip install -e .                                              # not on PyPI yet; installs from source
 $ classifier-bench tasks                                        # the corpus: tasks, domains, cases
 $ classifier-bench estimate -c jev -c haiku                     # registry-priced cost, no calls
 $ classifier-bench run -c jev -c haiku --dry-run --out /tmp/x   # synthetic providers, no keys, no cost

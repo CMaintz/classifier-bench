@@ -44,19 +44,25 @@ DEPTRY_VERSION = "0.25.1"
 # Coverage floor for `test`. Override per repo (a legacy repo can start lower and
 # ratchet up); CI inherits whatever you set here.
 FOUNDRY_COV_MIN = "90"
+# The Foundry gate scripts (foundry-verb-wrap) are provisioned by setup:foundry-scripts into
+# a cache dir at this ref, not vendored (see that task). Renovate tracks the pin via the
+# comment above it.
+# renovate: datasource=github-tags depName=CMaintz/foundry
+FOUNDRY_SCRIPTS_REF = "v2.12.0"
 # The project .venv first (so mypy/pytest/pip-audit resolve to the pinned ones), then the
-# habit-hooks venv (so `smells` finds the pinned habit-hooks), then the repo's scripts/ so
-# the gate can call `foundry-verb-wrap` by name. Both venv bin layouts are listed (bin on
-# Linux/macOS, Scripts on Windows); the absent one is ignored.
+# habit-hooks venv (so `smells` finds the pinned habit-hooks), then the Foundry gate scripts
+# cache (so the gate runs `foundry-verb-wrap` by name), then the repo's own scripts/. Both
+# venv bin layouts are listed (bin on Linux/macOS, Scripts on Windows); the absent one is ignored.
 _.path = [
     "{{config_root}}/.venv/bin",
     "{{config_root}}/.venv/Scripts",
     "{{env.HOME}}/.local/opt/{{env.HABIT_HOOKS_PLUGIN}}-{{env.HABIT_HOOKS_VERSION}}/bin",
     "{{env.HOME}}/.local/opt/{{env.HABIT_HOOKS_PLUGIN}}-{{env.HABIT_HOOKS_VERSION}}/Scripts",
+    "{{env.HOME}}/.local/opt/foundry-scripts-{{env.FOUNDRY_SCRIPTS_REF}}",
     "{{config_root}}/scripts",
 ]
 # Loop telemetry: each gate verb appends one JSONL line here (see designs/loop-telemetry.md).
-# Read it with `foundry-loop-report`. foundry-init installs the wrapper.
+# Read it with the `foundry:loop-report` skill. setup:foundry-scripts caches the wrapper.
 FOUNDRY_TELEMETRY = "{{config_root}}/.foundry/telemetry.jsonl"
 
 # -- Jev (advisory layer; opt-in, OFF unless set) --------------------------
@@ -78,9 +84,10 @@ FOUNDRY_TELEMETRY = "{{config_root}}/.foundry/telemetry.jsonl"
 # JEV_FEATURE_PRECHECK = "0"          # 1 pre-checks a feature ticket (repos with that hook)
 
 [hooks]
-# Two provisioning tasks on `mise install` (local and CI alike): the project .venv tools
-# and the pinned habit-hooks venv - the array form the java template uses for setup:pmd.
-postinstall = ["mise run setup:pytools", "mise run setup:habit-hooks"]
+# The provisioning tasks on `mise install` (local and CI alike): the project .venv tools,
+# the pinned habit-hooks venv, and the cached Foundry gate scripts - the array form the java
+# template uses for setup:pmd.
+postinstall = ["mise run setup:pytools", "mise run setup:habit-hooks", "mise run setup:foundry-scripts"]
 
 [tasks."setup:pytools"]
 description = "Create the project .venv and install the pinned mypy/pytest/pip-audit/deptry (+ the project's own deps)"
@@ -199,11 +206,41 @@ description = "Dependency vulnerabilities (pip-audit over the project .venv)"
 # runtime + dev deps installed in the .venv are audited.
 run = "pip-audit --skip-editable"
 
+# Fetch the pinned Foundry gate scripts into a cache dir, rather than vendoring copies into
+# the repo (agent/CI plumbing, not the repo's code; a vendored copy drifts and needs a
+# re-sync on every bump). Pinned to FOUNDRY_SCRIPTS_REF, provisioned once like setup:pytools.
+# Offline-safe: no network call when every script is already cached at this ref, so the
+# gate hot path never depends on the network; a ref bump needs the network once.
+[tasks."setup:foundry-scripts"]
+description = "Fetch the pinned Foundry gate scripts into a cache dir (de-vendored)"
+run = '''
+set -eu
+dst="$HOME/.local/opt/foundry-scripts-$FOUNDRY_SCRIPTS_REF"
+scripts="foundry-verb-wrap"
+need=""
+for s in $scripts; do [ -f "$dst/$s" ] || need="$need $s"; done
+[ -z "$need" ] && exit 0
+mkdir -p "$dst"
+base="https://raw.githubusercontent.com/CMaintz/foundry/$FOUNDRY_SCRIPTS_REF/scripts"
+for s in $need; do
+  if ! curl -fsSL "$base/$s" -o "$dst/$s.part"; then
+    echo "setup:foundry-scripts: cannot fetch $s at $FOUNDRY_SCRIPTS_REF (network needed once per ref)" >&2
+    rm -f "$dst/$s.part"; exit 1
+  fi
+  mv "$dst/$s.part" "$dst/$s"
+  chmod +x "$dst/$s" 2>/dev/null || true
+done
+'''
+
 [tasks.gate]
-description = "The oracle. Sequential - mise `depends` runs in parallel with no ordering."
-# Each verb wrapped by `foundry-verb-wrap`: times it, appends a line to FOUNDRY_TELEMETRY,
-# propagates the exit code unchanged (a failing verb still stops the sequence). Wrapper on
-# PATH via scripts/ ([env]); foundry-init installs it. Not part of the six-verb contract.
+description = "The oracle. Sequential - the VERBS must never be mise `depends` (those run in parallel)."
+# The one setup:foundry-scripts dep provisions the cached gate script first (idempotent,
+# ordered-first) - a safety net for a ref bump not yet followed by `mise install`. The
+# VERBS stay in the sequential array (never `depends`, which would run them in parallel,
+# unordered). Each verb is wrapped by `foundry-verb-wrap`: it times the verb, appends a line
+# to FOUNDRY_TELEMETRY, and propagates the exit code unchanged (a failing verb still stops
+# the sequence). Wrapper on PATH via the setup:foundry-scripts cache. Not on the six-verb contract.
+depends = ["setup:foundry-scripts"]
 run = [
     "foundry-verb-wrap lint      -- mise run lint",
     "foundry-verb-wrap typecheck -- mise run typecheck",
